@@ -1,0 +1,4 @@
+rm -f cl2e4 *.mod
+ifort -fpp -O3 -o cl2e4 cl2e4.f90 -mkl=sequential -lmkl_lapack95_lp64 -lpthread -lm -Dme_=0.063d0 -DV0_=0.05d0 -DB_campo_=80.d0 -Domega_i_=0.00001d0 -Domega_f_=0.5d0 -DN_omega_=50 -Dlambda_i_=0.d0 -Dlambda_f_=1.d0 -DN_lambda_=20 -Dsigma_=20.d0
+./cl2e4 # > 'salida.dat'
+rm -f cl2e4 *.mod

@@ -1,0 +1,43 @@
+\documentclass[10pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{makeidx}
+\usepackage{graphicx}
+\usepackage{lmodern}
+\begin{document}
+Algunas anotaciones sobre el problema con el fede.
+
+El hamiltoniano para cada electr\'on es:
+\begin{equation}
+h = -\frac{\hslash^2}{2m}\frac{d^2}{dz^2}+V(z)
+\end{equation}
+
+El hamiltoniano para los electrones es:
+\begin{equation}
+H(z_1, z_2)=h(z_1)+h(z_2)+W(z_1,z_2)
+\end{equation}
+
+donde:
+\begin{equation}
+V(z) = -V_0 e^{-b(z-z_0)^2}
+\end{equation}
+\begin{equation}
+W(z_1,z_2) = e^{y^2+x^2} \sqrt{\frac{\pi}{2}}\frac{1}{l}(1-erf(x+y))
+\end{equation}
+$x = \frac{|z_1-z_2|}{\sqrt{2}l}$ y $y=\frac{\alpha l}{\sqrt{2}}$
+
+Ahora vamos a hacer complex rotation. Por lo tanto tenesmos que $z\rightarrow ze^{i\theta}$, 
+por lo tanto el hamiltoniano de una particula queda:
+\begin{equation}
+h = -\frac{\hslash^2}{2m} e^{i2\theta} \frac{d^2}{dz^2}+V(ze^{i\theta})
+\end{equation}
+\begin{equation}
+V(ze^{i\theta}) =-V_0e^{-bz^2cos\theta}\left[cos(bz^2 sin(2\theta))-i sin( bz^2 sin(2\theta))\right]
+\end{equation}
+
+
+
+\end{document}
