@@ -58,7 +58,7 @@ program cl1e
   use precision
   use gaussquad
   implicit none
-  integer, parameter :: N_base = 39, N_cuad = 150
+  integer, parameter :: N_base = 29, N_cuad = 100
   integer :: N_dim = ((N_base+1)*(N_base+2))/2
   integer, allocatable :: idx(:,:), idnm(:,:), idsim(:,:)
   integer :: n, m, N_B, ind_B
