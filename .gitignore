@@ -1,0 +1,14 @@
+*.out
+*.o
+*.mod
+*.e
+*.exe
+*.nb
+*.pdf
+*.ps
+*.dvi
+*.eps
+*.dat
+*.agr
+*.log
+*.aux
