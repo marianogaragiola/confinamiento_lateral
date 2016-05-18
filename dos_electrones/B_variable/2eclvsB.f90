@@ -194,9 +194,9 @@ if( nev<0 ) nev = nb
 z0 = z0/a0; zmin = zmin/a0; zmax = zmax/a0; sigma = sigma/a0;
 V0 = V0/eV;
 
-la1 = char(modulo(int(10.d0*lambda), 10) + 48);
-la2 = char(modulo(int(10.d0*lambda), 100)/10 + 48);
-la3 = char(modulo(int(10.d0*lambda), 1000)/100 + 48);
+la1 = char(modulo(int(100.d0*lambda), 10) + 48);
+la2 = char(modulo(int(100.d0*lambda), 100)/10 + 48);
+la3 = char(modulo(int(100.d0*lambda), 1000)/100 + 48);
 
 z1 = char(modulo(int(a0*zmax), 10) + 48);
 z2 = char(modulo(int(a0*zmax), 100)/10 + 48);
@@ -213,6 +213,7 @@ archivo1e = './resultados/1e-E_vs_B-zmax'//z3//z2//z1//'-l'//l3//l2//l1//'.dat';
 archivo2e = './resultados/2e-E_vs_B-lambda'//la3//la2//la1//'-zmax'//z3//z2//z1//'-l'//l3//l2//l1//'.dat';
 open(9, file=archivo2e)
 open(10, file=archivo1e)
+write(10,*) ''
 !###########################################################
 !###########################################################
 write(9,*) '# Codigo que calculos los autovalores de dos electrones'
@@ -298,7 +299,7 @@ write(9,*) '# autovalores calculados'
 close(9)
 close(10)
 
-allocate( Sp(kord)) !, dsp(kord-1))
+allocate( Sp(kord)) 
 
 allocate( x(l,intg), w(l,intg), pl(l,intg))
 

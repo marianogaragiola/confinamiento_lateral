@@ -23,7 +23,7 @@ lambdai_		= 0.d0
 lambdaf_		= 1.d0
 num_puntos_lambda_	= 20
 me_			= 0.063d0
-B_campo_		= 60.d0
+B_campo_		= 80.d0
 
 # OFILE			= [CPU,$(Q),$(L),$(SAMPLES),$(TEMP_MIN),$(TEMP_MAX),$(DELTA_TEMP),$(TRAN),$(TMAX),$(DELTA_T)].dat
 
