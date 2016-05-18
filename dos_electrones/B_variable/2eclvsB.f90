@@ -1,5 +1,5 @@
-! Nombre del archivo 2eclvsB.f90 que significa Dos Electrones Confinamiento Lateral
-! vs B.
+! Nombre del archivo 2eclvslambda.f90 que significa Dos Electrones Confinamiento Lateral
+! vs lambda.
 !
 ! Codigo que calculos los autovalores de dos electrones en un pozo con forma gaussiana.
 !
@@ -88,16 +88,12 @@
 #define V0_ 1.d0
 #endif
 
-#ifndef lambda_
-#define lambda_ 0.5d0
+#ifndef B_campo_i_
+#define B_campo_i_ 0.1d0
 #endif
 
-#ifndef Bi_
-#define Bi_ 1.d0
-#endif
-
-#ifndef Bf_
-#define Bf_ 100.d0
+#ifndef B_campo_f_
+#define B_campo_f_ 1.d0
 #endif
 
 #ifndef num_puntos_B_
@@ -108,28 +104,33 @@
 #define me_ 1.d0
 #endif
 
+#ifndef lambda_
+#define lambda_ 1.d0
+#endif
 !!!!!!!!!!!!!!!!!!!!!! MODULES !!!!!!!!!!!!!!!!!!!!!!!
 
 module carga
+implicit none
 integer :: kord, lum, intg, nev, num_puntos_B
-real(8) :: zmin, zmax, V0, Vpozo, sigma, lambda, z0
-real(8) :: me, Bi, Bf, B_campo, delta_B, c, gamma, ll
+real(8) :: zmin, zmax, V0, sigma, lambda, B_campo_i, B_campo_f, z0
+real(8) :: me, B_campo, delta_B, c, gamma, ll
 integer :: l
-character(1) :: tip, l1, l2, l3
+character(1) :: tip, B1, B2
 end module  carga
 
 module matrices
+implicit none
 integer :: nk, nb
 real(8), allocatable, dimension(:) :: norma
-real(8), allocatable, dimension(:,:) :: s, v01, ke, aux
+real(8), allocatable, dimension(:,:) :: s, v01, ke
 real(8), allocatable, dimension(:,:,:,:) :: Vef
-real(8), allocatable :: psi_old(:), psi_new(:)
-integer, allocatable, dimension(:,:) :: ist, irt, tri
+! integer, allocatable, dimension(:,:) :: ist, irt, tri
 end module matrices
 
 module integracion
+implicit none
 integer, allocatable, dimension(:) :: k
-real(8), allocatable, dimension(:) :: t, sp, dsp
+real(8), allocatable, dimension(:) :: t, sp !, dsp
 real(8), allocatable, dimension(:,:) :: x, w, pl
 end module  integracion
 
@@ -142,6 +143,9 @@ implicit none
 integer :: i, j, ind_B
 real(8), parameter :: alpha = 658.4092645439d0, a0 = 0.0529177210d0, eV = 27.21138564d0
 real(8) :: time
+character(150) :: archivo1e, archivo2e
+character(1) :: z1, z2, z3, l1, l2, l3
+character(1) :: la1, la2, la3
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 zmin = zmin_; zmax = zmax_ ! valores de inicio y final del intervalo de integracion
@@ -166,15 +170,15 @@ intg = intg_ ! grado de la intregracion de cuadratura gaussiana, >=k
 
 nev = nev_ ! # de autovalores que queremos calculara
 
-Vpozo = Vpozo_ ! profundidad del pozo en eV
+V0 = V0_ ! profundidad del pozo en eV
 
-lambda = lambda_
-
-Bi = Bi_; Bf = Bf_
+B_campo_i = B_campo_i_; B_campo_f = B_campo_f_
 
 num_puntos_B = num_puntos_B_
 
 me = me_ ! en unidades atomicas
+
+lambda = lambda_ ! en Tesla
 
 if( intg<kord ) intg = kord
 
@@ -185,17 +189,30 @@ nk = l+2*kord-1   ! # de knots
 nb = kord+l-3      ! size base splines
 if( nev<0 ) nev = nb
 
+
 ! paso el parametro del potencial a unidades atomicas
 z0 = z0/a0; zmin = zmin/a0; zmax = zmax/a0; sigma = sigma/a0;
+V0 = V0/eV;
 
-l1 = char(modulo(int(100*lambda), 10) + 48);
-l2 = char(modulo(int(100*lambda), 100)/10 + 48);
-l3 = char(modulo(int(100*lambda), 1000)/100 + 48);
+la1 = char(modulo(int(10.d0*lambda), 10) + 48);
+la2 = char(modulo(int(10.d0*lambda), 100)/10 + 48);
+la3 = char(modulo(int(10.d0*lambda), 1000)/100 + 48);
+
+z1 = char(modulo(int(a0*zmax), 10) + 48);
+z2 = char(modulo(int(a0*zmax), 100)/10 + 48);
+z3 = char(modulo(int(a0*zmax), 1000)/100 + 48);
+
+l1 = char(modulo(int(l), 10) + 48);
+l2 = char(modulo(int(l), 100)/10 + 48);
+l3 = char(modulo(int(l), 1000)/100 + 48);
 
 !###########################################################
 !###########################################################
 !###########################################################
-open(9,file='./resultados/auval_vs_B-lambda'//l3//l2//l1//'.dat')
+archivo1e = './resultados/1e-E_vs_B-zmax'//z3//z2//z1//'-l'//l3//l2//l1//'.dat';
+archivo2e = './resultados/2e-E_vs_B-lambda'//la3//la2//la1//'-zmax'//z3//z2//z1//'-l'//l3//l2//l1//'.dat';
+open(9, file=archivo2e)
+open(10, file=archivo1e)
 !###########################################################
 !###########################################################
 write(9,*) '# Codigo que calculos los autovalores de dos electrones'
@@ -262,26 +279,26 @@ write(9,*) '# zmin =', zmin*a0, 'zmax =', zmax*a0
 write(9,*) '# centro del pozo:'
 write(9,*) '# z0 =', z0*a0
 
-write(9,*) '# profundidad del pozo en eV =', Vpozo
+write(9,*) '# profundidad del pozo en eV =', V0*eV
 
-write(9,*) '# valor carga efectiva lambda =', lambda
-
-write(9,*) '# rango de valores de B ='
-write(9,*) '# Bi =', Bi, 'Bf =', Bf
+write(9,*) '# rango de valores de B_campo ='
+write(9,*) '# B_campo_i =', B_campo_i, 'B_campo_f =', B_campo_f
 
 write(9,*) '# ancho del pozo:'
 write(9,*) '# sigma =', sigma*a0
 
 write(9,*) '# masa de electron me =', me, 'unidades atomicas'
 
+write(9,*) '# Valor de la carga efectiva lambda =', lambda
+
 write(9,*) '# autovalores calculados'
 !###########################################################
 !###########################################################
 !###########################################################
 close(9)
+close(10)
 
-
-allocate( Sp(kord), dsp(kord-1))
+allocate( Sp(kord)) !, dsp(kord-1))
 
 allocate( x(l,intg), w(l,intg), pl(l,intg))
 
@@ -291,29 +308,23 @@ allocate( norma(nb), s(nb,nb), v01(nb,nb), ke(nb,nb))
 
 allocate( Vef(nb, nb, nb, nb))
 
-allocate(psi_old(nb*(nb+1)/2), psi_new(nb*(nb+1)/2))
+call  KNOTS_PESOS( kord, tip, gamma, zmin, zmax, c, l, lum, intg, t, k, x, w, pl);
 
-call  KNOTS_PESOS( kord, tip, gamma, zmin, zmax, c, l, lum, intg, t, k, x, w, pl)
 
-delta_B = (Bf-Bi)/real(num_puntos_B-1,kind(0.d0));
+delta_B = (B_campo_f-B_campo_i)/real(num_puntos_B-1, kind(0.d0));
 
-psi_old(:) = 0.d0; psi_new(:) = 0.d0;
+do ind_B = 1, num_puntos_B
 
-do ind_B = 0, num_puntos_B
+  B_campo = B_campo_i + real(ind_B-1, kind(0.d0))*delta_B;
 
-  B_campo = Bi + real(ind_B,kind(0.d0))*delta_B;
-
-  ! calculo el parametro del potencial efectivo en nm
-  ll = sqrt(alpha/B_campo);
-
+  ll = sqrt(2.d0*alpha/B_campo);
   ll = ll/a0;
 
-  V0 = Vpozo/(1.d0+ll**2/(2.d0*sigma**2));
-  V0 = V0/eV;
+  call matrix_elements( );
 
-  call matrix_elements( )
+  v01(:,:) = V0*v01(:,:)/(1.d0 + ll**2/(2.d0*sigma**2));
 
-  call interaccion( )
+  call interaccion( );
 
   do i = 1,nb
     do j = i+1,nb
@@ -323,18 +334,17 @@ do ind_B = 0, num_puntos_B
     end do
   end do
 
-  call init_e( )
+  call sener(archivo1e, archivo2e);
 
 end do
 
-deallocate(Sp, dsp, x, w, pl)
+deallocate(Sp, x, w, pl)
 deallocate(t, k, norma, s, v01, ke, Vef)
-deallocate(psi_old, psi_new)
 
-call cpu_time(time)
+call cpu_time(time);
 write(*,*)time/60.d0
 
-end !termina el main, termina el programa
+end program !termina el main, termina el programa
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -364,7 +374,7 @@ do i = kord, kord+l-1
           if( in>0.and.in<nb+1 )then
             s(im,in) = s(im,in) + sp(m)*sp(n)*w(k(i),j)
 
-            v01(im,in) = v01(im,in) + w(k(i),j)*sp(m)*sp(n)*(-V0*exp(-(zz-z0)**2/(2.d0*sigma**2)) )
+            v01(im,in) = v01(im,in) + w(k(i),j)*sp(m)*sp(n)*(-1.d0*exp(-(zz-z0)**2/(2.d0*sigma**2)) )
 
           endif
         end do
@@ -405,11 +415,11 @@ use integracion
 implicit none
 integer :: i1, i2, j1, j2
 integer :: m, n, im, in, mp, imp, np
-real(8) :: pi, zz1, zz2, w1, w2, const, var, result
-real(8), allocatable, dimension(:,:) :: f, g
+real(8) :: pi, zz1, zz2, w1, w2, const, var !, result
+real(8), dimension(nb,nb) :: f
 real(8), parameter :: a0 = 0.0529177210d0
 
-allocate(f(nb, nb), g(nb, nb))
+!allocate(f(nb, nb))
 
 pi = 2.d0*asin(1.d0);
 
@@ -421,7 +431,7 @@ do i1 = kord, kord+l-1
   do j1 = 1, intg
     zz1 = x(k(i1), j1); w1 = w(k(i1), j1);
 
-    f = 0.d0; g = 0.d0;
+    f = 0.d0;
     do i2 = kord, kord+l-1
       do j2 = 1, intg
         zz2 = x(k(i2), j2); w2 = w(k(i2),j2);
@@ -437,23 +447,12 @@ do i1 = kord, kord+l-1
               in = i2-kord+n-1
               if(in>0 .and. in<nb+1)then
 
-                ! if(zz2.LE.zz1)then
-
                  if( var <= 5.d0) then
                    f(im, in) = f(im, in) + Sp(m)*Sp(n)*w2*const*EXP(var**2)*(1.d0 - ERF(var));
                  else
-                   f(im, in) = f(im, in) + Sp(m)*Sp(n)*w2*(1.d0/(zz1-zz2)-ll**2/(zz1-zz2)**3);
+                   ! f(im, in) = f(im, in) + Sp(m)*Sp(n)*w2*(1.d0/abs(zz1-zz2)-ll**2/abs(zz1-zz2)**3);
+                   f(im, in) = f(im, in) + Sp(m)*Sp(n)*w2/ll*(sqrt(0.5d0)/var - (sqrt(0.5d0)/var)**3);
                  end if
-
-                ! else
-
-                !  if( var <= 5.d0) then
-                !    g(im, in) = g(im, in) + Sp(m)*Sp(n)*w2*const*EXP(var**2)*(1.d0 - ERF(var));
-                !  else
-                !    g(im, in) = g(im, in) + Sp(m)*Sp(n)*w2*(1.d0/(zz2-zz1)-ll**2/(zz2-zz1)**3);
-                !  end if
-
-                ! end if
 
               end if
             end do
@@ -473,7 +472,7 @@ do i1 = kord, kord+l-1
             do n = 1, nb
               do np = 1, nb
 
-                Vef(im, n, imp, np) = Vef(im, n, imp, np) + Sp(m)*Sp(mp)*w1*(f(n, np) + g(n, np))/dsqrt(s(n,n)*s(np,np));
+                Vef(im, n, imp, np) = Vef(im, n, imp, np) + Sp(m)*Sp(mp)*w1*f(n, np);
 
               end do
             end do
@@ -486,66 +485,19 @@ do i1 = kord, kord+l-1
   end do
 end do
 
-deallocate(f, g)
+! deallocate(f)
 
 end subroutine interaccion
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-subroutine init_e( )
-use matrices
-use integracion
-use carga
-implicit none
-integer(4) :: m, n, mp, np
-real(8) :: nor, nor1
-
-do n = 1, nb
-  do np = 1, nb
-    nor1 = dsqrt(s(n,n)*s(np,np));
-    do m = 1, nb
-      do mp = 1, nb
-        Vef(n,m,np,mp) = Vef(n,m,np,mp)/nor1;
-      end do
-    end do
-  end do
-end do
-
-do m = 1, nb
-  do n = m+1, nb
-    nor = dsqrt(s(m,m)*s(n,n))
-    s(m,n) = s(m,n)/nor ; s(n,m) = s(m,n)
-    ke(m,n) = ke(m,n)/nor ; ke(n,m) = ke(m,n)
-    v01(m,n) = v01(m,n)/nor ; v01(n,m) = v01(m,n)
-  end do
-
-  ke(m,m) = ke(m,m)/s(m,m)
-  v01(m,m) = v01(m,m)/s(m,m)
-end do
-
-do m = 1, nb
-   norma(m) = dsqrt(s(m,m))
-   s(m,m) = 1.d0
-end do
-
-call sener( )
-
-return
-
-end subroutine init_e
-
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
 ! sener.f90 basado en ener.f90
 ! pero es una subroutine de exp_bs_gs.f90 para calcular el GS
 
 ! Calcula E_i de una matriz que se le pasa por mudule
 
-subroutine sener( )
+subroutine sener(archivo1e, archivo2e)
 use carga
 use matrices
 use integracion
@@ -554,26 +506,25 @@ integer(4) :: i, j, m, n, mp, np, dp
 integer(4) :: info, ind, indp, NN
 real(8) :: raiz
 real(8), parameter :: eV = 27.21138564d0
-real(8), allocatable, dimension(:,:) :: auvec, val_exp
-real(8), allocatable, dimension(:) :: v, e
-real(8), allocatable, dimension(:,:) :: mh, ms, mv, hsim, mscopy
-! real(8), allocatable, dimension(:) :: psi_old, psi_new
-real(kind(0.d0)) :: ground_state, fidelidad
+real(8), allocatable, dimension(:,:) :: auvec1, auvec2
+real(8), allocatable, dimension(:) :: e1, e2
+real(8), allocatable, dimension(:,:) :: mh, ms, mv, hsim
+real(8) :: ground_state
+character(150) :: archivo1e, archivo2e
 
 raiz = 1.d0/sqrt(2.d0);
 
 dp = nb
 NN = nb*(nb+1)/2
 
-allocate( e(nev), v(nev), auvec(NN,nev), mh(dp,dp), val_exp(nev,nev))
-allocate( hsim(NN,NN), ms(NN,NN), mv(NN,NN), mscopy(NN,NN))
+allocate( e1(nev), e2(nev), auvec1(dp,nev), auvec2(NN,nev), mh(dp,dp))
+allocate( hsim(NN,NN), ms(NN,NN), mv(NN,NN))
 
 !###########################################################
 !###########################################################
 !###########################################################
-open(11,file='./resultados/auval_vs_B-lambda'//l3//l2//l1//'.dat',position='append')
-!open(12,file='./resultados/expectacion_interaccion.dat')
-! open(13,file='./resultados/fidelidad_vs_B-lambda'//l3//l2//l1//'.dat',position='append')
+open(11, file=archivo2e, position = 'append')
+open(12, file=archivo1e, position = 'append')
 !###########################################################
 !###########################################################
 !###########################################################
@@ -587,12 +538,13 @@ do m = 1, dp
   end do
 end do
 
+
 hsim = 0.d0; ms = 0.d0;
 
 !!! halmiltoniano de dos particulas ya simetrizado
 ind = 1
 do n = 1, dp
-  do m = 1, n !n, dp
+  do m = 1, n!n, dp
     indp = 1
     do np = 1, dp
       do mp = 1, np !np, dp
@@ -636,42 +588,26 @@ end do
 if( NN.ne.(ind-1) ) stop
 if( NN.ne.(indp-1) ) stop
 
-mscopy(:,:) = ms(:,:);
+call eigen_value( dp, nev, info, mh, s, e1, auvec1);
+e1(:) = eV*e1(:);
 
-call eigen_value( NN, nev, info, hsim, ms, e, auvec)
+call eigen_value( NN, nev, info, hsim, ms, e2, auvec2);
+e2(:) = eV*e2(:);
 
-psi_new(:) = auvec(:,1);
-
-! fidelidad = dot_product(psi_old, matmul(mscopy, psi_new));
-! fidelidad = 1.d0-fidelidad**2;
-
-e(:) = eV*e(:) !+ 4.d0*ground_state(0, B_campo);
-
-!val_exp = MATMUL( TRANSPOSE(auvec), MATMUL(mv, auvec))
-!do j = 1, nev
-!  v(j) = val_exp(j,j);
-!end do
 !!!!!!!!!!!!!!!!!!!!!!!####################################
 !!!!!!!!!!!!!!!!!!!!!!!####################################
 !!!!!!!!!!!!!!!!!!!!!!!####################################
-write(11,6) B_campo, (e(m), m = 1, 25)
-!write(12,6) B_campo, (eV*v(m), m = 1, 25)
-! write(13,6) B_campo, fidelidad, dot_product(psi_new, matmul(mscopy, psi_new))
-!write(*,*) B_campo, fidelidad, dot_product(psi_new, matmul(mscopy, psi_new))
+write(11,6) B_campo, (e2(m), m = 1, 25)
+write(12,6) B_campo, (e1(m), m = 1, 25)
 !!!!!!!!!!!!!!!!!!!!!!!####################################
 !!!!!!!!!!!!!!!!!!!!!!!####################################
 !!!!!!!!!!!!!!!!!!!!!!!####################################
-
-psi_old(:) = psi_new(:);
-
-e = 0.d0
 info = 0
 
 close(11)
-!close(12)
-! close(13)
+close(12)
 
-deallocate(e, v, auvec, mh, ms, hsim, mv, val_exp, mscopy)
+deallocate(e1, e2, auvec1, auvec2, mh, ms, hsim, mv)
 
 6 format(e22.14,1x,1000(1x,e22.14))
 
@@ -1167,6 +1103,6 @@ integer, intent(in) :: n
 real(kind(0.d0)), intent(in) :: B
 real(kind(0.d0)), parameter :: beta = 0.00183758049186099 ! en eV/T
 
-ground_state = beta*(real(n, kind(0.d0))+0.5d0)*B;
+ground_state = beta*(real(n, kind(0.d0)) + 0.5d0)*B;
 
 end function ground_state

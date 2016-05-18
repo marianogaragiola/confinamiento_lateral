@@ -67,7 +67,7 @@ program cl1e
   real(pr) :: b, l, delta_B, lambda
   real(pr), allocatable :: x(:), w(:), Hermite(:,:)
   real(pr), allocatable :: T(:,:), V(:,:), H_e(:,:)
-  real(pr), allocatable :: V_ef(:,:), H(:,:), e(:)
+  real(pr), allocatable :: V_ef(:,:), H(:,:), e(:), e1(:)
   character(1) :: l1, l2, l3, l4
 
 !!cargo los parametros para el problema
@@ -96,7 +96,7 @@ program cl1e
   allocate(Hermite(N_cuad,N_base+1))
   allocate(T(N_base+1,N_base+1), V(N_base+1,N_base+1), H_e(N_base+1,N_base+1))
   allocate(V_ef((N_base+1)**2,(N_base+1)**2))
-  allocate(H(N_dim,N_dim), e(N_dim))
+  allocate(H(N_dim,N_dim), e(N_dim), e1(N_base+1))
 
   call indices(N_base, N_dim, idx, idnm, idsim);
 
@@ -112,7 +112,8 @@ program cl1e
 !!calculo la energia potencial
   call energia_potencial(N_base, N_cuad, omega, sigma, x, w, Hermite, V);
 
-  open(11, file='./resultados/auval_vs_B-lambda'//l4//l3//l2//l1//'.dat')
+  open(11, file='./resultados/2e-E_vs_B-lambda'//l4//l3//l2//l1//'.dat')
+  open(12, file='./resultados/1e-E_vs_B.dat')
   write(11,*) '# me =', me
   write(11,*) '# V0 =', V0*eV
   write(11,*) '# B_i =', B_campo_i, 'B_f =', B_campo_f
@@ -134,13 +135,18 @@ program cl1e
     call hamiltoniano(N_base, N_dim, lambda, idnm, idsim, H_e, V_ef, H);
 
 !!!!calculo los autovalores y autovectores
+    call autovalores(N_base+1, H_e, e1);
+    e1(:) = eV*e1(:);
+
     call autovalores(N_dim, H, e);
     e(:) = eV*e(:);
 
+    write(12,6) B_campo, (e1(n), n = 1, 30)
     write(11,6) B_campo, (e(n), n = 1, 30)
 
   end do
   close(11)
+  close(12)
 
 6 format(e22.14,1x,1000(1x,e22.14))
 

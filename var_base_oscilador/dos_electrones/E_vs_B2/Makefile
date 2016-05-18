@@ -15,8 +15,8 @@ B_campo_i_	= 5.d0
 B_campo_f_	= 100.d0
 N_B_		= 95
 sigma_		= 20.d0
-lambda_		= 0.4d0
-omega_		= 0.009d0 #0.010213877d0
+lambda_		= 0.69d0
+omega_		= 0.030 #0213877d0
 
 # PARAMETER
 PARAMETER	= -Dme_=$(me_) -DV0_=$(V0_) -DB_campo_i_=$(B_campo_i_) -DB_campo_f_=$(B_campo_f_) \

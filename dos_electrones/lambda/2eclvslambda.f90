@@ -120,14 +120,14 @@ end module  carga
 module matrices
 integer :: nk, nb
 real(8), allocatable, dimension(:) :: norma
-real(8), allocatable, dimension(:,:) :: s, v01, ke, aux
+real(8), allocatable, dimension(:,:) :: s, v01, ke
 real(8), allocatable, dimension(:,:,:,:) :: Vef
-integer, allocatable, dimension(:,:) :: ist, irt, tri
+! integer, allocatable, dimension(:,:) :: ist, irt, tri
 end module matrices
 
 module integracion
 integer, allocatable, dimension(:) :: k
-real(8), allocatable, dimension(:) :: t, sp, dsp
+real(8), allocatable, dimension(:) :: t, sp
 real(8), allocatable, dimension(:,:) :: x, w, pl
 end module  integracion
 
@@ -140,6 +140,8 @@ implicit none
 integer :: i, j
 real(8), parameter :: alpha = 658.4092645439d0, a0 = 0.0529177210d0, eV = 27.21138564d0
 real(8) :: time
+character(150) :: archivo1e, archivo2e
+character(1) :: z1, z2, z3, l1, l2, l3
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 zmin = zmin_; zmax = zmax_ ! valores de inicio y final del intervalo de integracion
@@ -196,10 +198,21 @@ V0 = V0/eV; ! paso a unidades atomicas el pozo
 B1 = char(modulo(int(B_campo), 10) + 48);
 B2 = char(modulo(int(B_campo), 100)/10 + 48);
 
+z1 = char(modulo(int(a0*zmax), 10) + 48);
+z2 = char(modulo(int(a0*zmax), 100)/10 + 48); 
+z3 = char(modulo(int(a0*zmax), 1000)/100 + 48);
+
+l1 = char(modulo(int(l), 10) + 48);
+l2 = char(modulo(int(l), 100)/10 + 48);
+l3 = char(modulo(int(l), 1000)/100 + 48);
+
 !###########################################################
 !###########################################################
 !###########################################################
-open(9,file='./resultados/auval_vs_lambda-B'//B2//B1//'T.dat')
+archivo1e = './resultados/B'//B2//B1//'T/1e-E_vs_lambda-B'//B2//B1//'T-zmax'//z3//z2//z1//'-l'//l3//l2//l1//'.dat';
+archivo2e = './resultados/B'//B2//B1//'T/2e-E_vs_lambda-B'//B2//B1//'T-zmax'//z3//z2//z1//'-l'//l3//l2//l1//'.dat';
+open(9, file=archivo2e)
+open(10, file=archivo1e)
 !###########################################################
 !###########################################################
 write(9,*) '# Codigo que calculos los autovalores de dos electrones'
@@ -287,9 +300,9 @@ write(9,*) '# autovalores calculados'
 !###########################################################
 !###########################################################
 close(9)
+close(10)
 
-
-allocate( Sp(kord), dsp(kord-1))
+allocate( Sp(kord))
 
 allocate( x(l,intg), w(l,intg), pl(l,intg))
 
@@ -299,13 +312,11 @@ allocate( norma(nb), s(nb,nb), v01(nb,nb), ke(nb,nb))
 
 allocate( Vef(nb, nb, nb, nb))
 
-call  KNOTS_PESOS( kord, tip, gamma, zmin, zmax, c, l, lum, intg, t, k, x, w, pl)
+call  KNOTS_PESOS( kord, tip, gamma, zmin, zmax, c, l, lum, intg, t, k, x, w, pl);
 
-!write(*,*)"calcula las matrices de una particulas"
-call matrix_elements( )
+call matrix_elements( );
 
-!write(*,*)"calcula la interaccion"
-call interaccion( )
+call interaccion( );
 
 do i = 1,nb
   do j = i+1,nb
@@ -315,16 +326,15 @@ do i = 1,nb
   end do
 end do
 
-!write(*,*)"diagonaliza"
-call init_e( )
+call sener(archivo1e, archivo2e);
 
-deallocate(Sp, dsp, x, w, pl)
+deallocate(Sp, x, w, pl)
 deallocate(t, k, norma, s, v01, ke, Vef)
 
-call cpu_time(time)
+call cpu_time(time);
 write(*,*)time/60.d0
 
-end !termina el main, termina el programa
+end program !termina el main, termina el programa
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -396,10 +406,10 @@ implicit none
 integer :: i1, i2, j1, j2
 integer :: m, n, im, in, mp, imp, np
 real(8) :: pi, zz1, zz2, w1, w2, const, var, result
-real(8), allocatable, dimension(:,:) :: f, g
+real(8), allocatable, dimension(:,:) :: f
 real(8), parameter :: a0 = 0.0529177210d0
 
-allocate(f(nb, nb), g(nb, nb))
+allocate(f(nb, nb))
 
 pi = 2.d0*asin(1.d0);
 
@@ -411,7 +421,7 @@ do i1 = kord, kord+l-1
   do j1 = 1, intg
     zz1 = x(k(i1), j1); w1 = w(k(i1), j1);
 
-    f = 0.d0; g = 0.d0;
+    f = 0.d0;
     do i2 = kord, kord+l-1
       do j2 = 1, intg
         zz2 = x(k(i2), j2); w2 = w(k(i2),j2);
@@ -427,23 +437,12 @@ do i1 = kord, kord+l-1
               in = i2-kord+n-1
               if(in>0 .and. in<nb+1)then
 
-                ! if(zz2.LE.zz1)then
-
                  if( var <= 5.d0) then
                    f(im, in) = f(im, in) + Sp(m)*Sp(n)*w2*const*EXP(var**2)*(1.d0 - ERF(var));
                  else
-                   f(im, in) = f(im, in) + Sp(m)*Sp(n)*w2*(1.d0/(zz1-zz2)-ll**2/(zz1-zz2)**3);
+                   ! f(im, in) = f(im, in) + Sp(m)*Sp(n)*w2*(1.d0/abs(zz1-zz2)-ll**2/abs(zz1-zz2)**3);
+                   f(im, in) = f(im, in) + Sp(m)*Sp(n)*w2/ll*(sqrt(0.5d0)/var - (sqrt(0.5d0)/var)**3);
                  end if
-
-                ! else
-
-                !  if( var <= 5.d0) then
-                !    g(im, in) = g(im, in) + Sp(m)*Sp(n)*w2*const*EXP(var**2)*(1.d0 - ERF(var));
-                !  else
-                !    g(im, in) = g(im, in) + Sp(m)*Sp(n)*w2*(1.d0/(zz2-zz1)-ll**2/(zz2-zz1)**3);
-                !  end if
-
-                ! end if
 
               end if
             end do
@@ -463,7 +462,7 @@ do i1 = kord, kord+l-1
             do n = 1, nb
               do np = 1, nb
 
-                Vef(im, n, imp, np) = Vef(im, n, imp, np) + Sp(m)*Sp(mp)*w1*(f(n, np) + g(n, np))/dsqrt(s(n,n)*s(np,np));
+                Vef(im, n, imp, np) = Vef(im, n, imp, np) + Sp(m)*Sp(mp)*w1*f(n, np) !/dsqrt(s(n,n)*s(np,np));
 
               end do
             end do
@@ -476,66 +475,19 @@ do i1 = kord, kord+l-1
   end do
 end do
 
-deallocate(f, g)
+deallocate(f)
 
 end subroutine interaccion
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-subroutine init_e( )
-use matrices
-use integracion
-use carga
-implicit none
-integer(4) :: m, n, mp, np
-real(8) :: nor, nor1
-
-do n = 1, nb
-  do np = 1, nb
-    nor1 = dsqrt(s(n,n)*s(np,np));
-    do m = 1, nb
-      do mp = 1, nb
-        Vef(n,m,np,mp) = Vef(n,m,np,mp)/nor1;
-      end do
-    end do
-  end do
-end do
-
-do m = 1, nb
-  do n = m+1, nb
-    nor = dsqrt(s(m,m)*s(n,n))
-    s(m,n) = s(m,n)/nor ; s(n,m) = s(m,n)
-    ke(m,n) = ke(m,n)/nor ; ke(n,m) = ke(m,n)
-    v01(m,n) = v01(m,n)/nor ; v01(n,m) = v01(m,n)
-  end do
-
-  ke(m,m) = ke(m,m)/s(m,m)
-  v01(m,m) = v01(m,m)/s(m,m)
-end do
-
-do m = 1, nb
-   norma(m) = dsqrt(s(m,m))
-   s(m,m) = 1.d0
-end do
-
-call sener( )
-
-return
-
-end subroutine init_e
-
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
 ! sener.f90 basado en ener.f90
 ! pero es una subroutine de exp_bs_gs.f90 para calcular el GS
 
 ! Calcula E_i de una matriz que se le pasa por mudule
 
-subroutine sener( )
+subroutine sener(archivo1e, archivo2e)
 use carga
 use matrices
 use integracion
@@ -544,24 +496,25 @@ integer(4) :: i, j, m, n, mp, np, dp
 integer(4) :: info, ind, indp, NN
 real(8) :: raiz
 real(8), parameter :: eV = 27.21138564d0
-real(8), allocatable, dimension(:,:) :: auvec, val_exp
-real(8), allocatable, dimension(:) :: v, e
+real(8), allocatable, dimension(:,:) :: auvec1, auvec2
+real(8), allocatable, dimension(:) :: e1, e2
 real(8), allocatable, dimension(:,:) :: mh, ms, mv, hsim
 real(8) :: ground_state
+character(150) :: archivo1e, archivo2e
 
 raiz = 1.d0/sqrt(2.d0);
 
 dp = nb
 NN = nb*(nb+1)/2
 
-allocate( e(nev), v(nev), auvec(NN,nev), mh(dp,dp), val_exp(nev,nev))
+allocate( e1(nev), e2(nev), auvec1(dp,nev), auvec2(NN,nev), mh(dp,dp))
 allocate( hsim(NN,NN), ms(NN,NN), mv(NN,NN))
 
 !###########################################################
 !###########################################################
 !###########################################################
-open(11,file='./resultados/auval_vs_lambda-B'//B2//B1//'T.dat', position='append')
-! open(12,file='./resultados/expectacion_interaccion.dat')
+open(11, file=archivo2e, position='append')
+open(12, file=archivo1e)
 !###########################################################
 !###########################################################
 !###########################################################
@@ -575,11 +528,11 @@ do m = 1, dp
   end do
 end do
 
-delta = (lambdaf-lambdai)/dble(num_puntos_lambda)
+delta = (lambdaf-lambdai)/dble(num_puntos_lambda-1)
 
-do i = 0, num_puntos_lambda
+do i = 1, num_puntos_lambda
 
-  lambda = lambdai + dble(i)*delta;
+  lambda = lambdai + dble(i-1)*delta;
 
   hsim = 0.d0; ms = 0.d0;
 
@@ -630,31 +583,30 @@ do i = 0, num_puntos_lambda
   if( NN.ne.(ind-1) ) stop
   if( NN.ne.(indp-1) ) stop
 
-  call eigen_value( NN, nev, info, hsim, ms, e, auvec)
+  call eigen_value( NN, nev, info, hsim, ms, e2, auvec2)
 
-  e(:) = eV*e(:)! + 4.d0*ground_state(0, B_campo);
+  e2(:) = eV*e2(:);
 
-  ! val_exp = MATMUL( TRANSPOSE(auvec), MATMUL(mv, auvec))
-  ! do j = 1, nev
-  !   v(j) = val_exp(j,j);
-  ! end do
   !!!!!!!!!!!!!!!!!!!!!!!####################################
   !!!!!!!!!!!!!!!!!!!!!!!####################################
   !!!!!!!!!!!!!!!!!!!!!!!####################################
-  write(11,6) lambda, (e(m), m = 1, 25)
-  !write(12,6) lambda, (eV*v(m), m = 1, 25)
+  write(11,6) lambda, (e2(m), m = 1, 25)
   !!!!!!!!!!!!!!!!!!!!!!!####################################
   !!!!!!!!!!!!!!!!!!!!!!!####################################
   !!!!!!!!!!!!!!!!!!!!!!!####################################
-
-  e = 0.d0
   info = 0
 
 end do
 close(11)
+
+call eigen_value(dp, nev, info, mh, s, e1, auvec1);
+e1(:) = eV*e1(:);
+
+write(12,6) lambdai, (e1(m), m = 1, 25)
+write(12,6) lambdaf, (e1(m), m = 1, 25)
 close(12)
 
-deallocate(e, v, auvec, mh, ms, hsim, mv, val_exp)
+deallocate(e1, e2, auvec1, auvec2, mh, ms, hsim, mv)
 
 6 format(e22.14,1x,1000(1x,e22.14))
 
