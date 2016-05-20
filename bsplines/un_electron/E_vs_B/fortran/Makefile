@@ -6,22 +6,22 @@ CFLAGS			= -O3 -Wall -Wextra -cpp
 LDFLAGS			= -llapack
 
 # Default Values
-zmin_			= -80.d0
-zmax_			= 80.d0
+zmin_			= -100.d0
+zmax_			= 100.d0
 z0_			= 0.d0
 sigma_			= 20.d0
 lum_			= 0
 c_			= 0.d0
 gamma_			= 0.d0
 kord_			= 5
-l_			= 90
-intg_			= 100
-nev_			= 15
+l_			= 100
+intg_			= 1000
+nev_			= 30
 me_			= 0.063d0
 V0_			= 0.05d0
-B_i_			= 1.d0
+B_i_			= 5.d0
 B_f_			= 100.d0
-num_puntos_B_		= 990
+num_puntos_B_		= 190
 
 # OFILE			= [CPU,$(Q),$(L),$(SAMPLES),$(TEMP_MIN),$(TEMP_MAX),$(DELTA_TEMP),$(TRAN),$(TMAX),$(DELTA_T)].dat
 
