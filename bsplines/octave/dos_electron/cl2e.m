@@ -12,22 +12,22 @@ me      = 0.063; % masa efectiva del electron
 B_campo = 80; % campo magnetico en tesla
 V0      = 0.05; % Profundidad del potencial en eV
 
-B_campo_vec = linspace(5, 100, 190);
+B_campo_vec = linspace(10, 100, 90);
 
 % Parametros dependientes
 b = 0.5*(1/sigma)^2;
 
 %% Parametros para los B-splines
-num_intervalos   = 100; % numero de subintervalos
+num_intervalos   = 50; % numero de subintervalos
 num_break_points = num_intervalos + 1; % numero de break points contando los extremos
 kord             = 5; % orden de los bsplines, el grado de los polinomios es kord-1
 regularity       = kord-2; % repeticion de los knots, simplemente degenerados por eso kord-2
 xMax             = 150; % extremo superior del intervalo
 xMin             = -xMax; % extremo inferior del intervalo
-N_cuad           = 1000;
+N_cuad           = 100;
 N_base = num_intervalos + kord - 1;
 
-name = sprintf('./resultados/1e-E_vs_B.dat');
+name = sprintf('./resultados/2e-E_vs_B.dat');
 
 file = fopen(name, 'w');
 fprintf(file, '# Num_interavaos = %i \n', num_intervalos)
@@ -76,6 +76,11 @@ T = energia_cinetica(dbs, me, w);
 [V, S] = energia_potencial(bs, sigma, x, w);
 S = S(2:N_base-1,2:N_base-1);
 
+N_dim = (N_base-2)^2;
+
+lambda = 0.45;
+V_ef = zeros(N_dim);
+
 for B_campo = B_campo_vec
 
   l = sqrt(2*alpha/B_campo);
@@ -85,7 +90,11 @@ for B_campo = B_campo_vec
   H = zeros(N_base-2);
   H = T(2:N_base-1,2:N_base-1) - V0*V(2:N_base-1,2:N_base-1)/(1 + l^2*b);
 
-  [auvec, e] = eigs(H, S, N_base-2);
+  V_ef = Interaccion(bs, x, w, l);
+
+  [H_sim, S_sim] = simetrizacion(H, S, V_ef, lambda);
+
+  [auvec, e] = eigs(H_sim, S_sim, N_dim);
   [e, perm] = sort(diag(e));
   e = eV*e;
 
@@ -95,18 +104,6 @@ for B_campo = B_campo_vec
 
   save('-ascii', '-append', name, 'auval')
 
-  % %% Ahora voy a graficar los autoestados
-  % c = zeros(N_base);
-  % c(2:N_base-1,2:N_base-1) = transpose(auvec);
-  % bs = bspeval(kord-1, c, knots, x);
-  %
-  % norma = [0; diag(transpose(auvec)*auvec); 0];
-  %
-  % bs = bs./repmat(sqrt(norma), [1 size(bs, 2)]);
-  % bs = bs.*bs;%/repmat(x, [size(bs, 1)]);
-  %
-  % autovectores = [x; bs]';
-  % save('-ascii', 'autovectores.dat', 'autovectores')
 end
 
 elapsed_time = toc()
