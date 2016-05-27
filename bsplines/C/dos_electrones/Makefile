@@ -6,8 +6,8 @@ CFLAGS			= -O3 -g -cpp -std=gnu99 -Wall -Wextra -fopenmp
 LDFLAGS			= -llapack -lm
 
 # Default Values
-RMIN				= -150.0
-RMAX				= 150.0
+RMIN				= -100.0
+RMAX				= 100.0
 L						= 50
 KORD				= 5
 INTG				= 50

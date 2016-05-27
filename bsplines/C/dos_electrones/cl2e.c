@@ -1,4 +1,4 @@
-/* Programa en C que resuelve el problema de una particula
+/* Programa en C que resuelve el problema de dos electrones interactuantes
  * en un pozo de potencial usando B-splines.
  * Usa el metodo variacional de Rayleight-Ritz usando como base del
  * espacio los B-splines, como esta no es una base ortonormal el
@@ -20,11 +20,11 @@
  * bder() respectivamente, son versiones hechas por mi a partir de las
  * versiones de fortran.
  *
- * EL programa calcula los autovalores para un potencial de la forma:
+ * EL potencial de confinamiento de cada electron es de la forma:
  *
  * 			V(z) = -V0*exp(-0.5*z^2/sigma^2)/(1 + 0.5*l^2/sigma^2)
  *
- * o sea el pozo es una gaussiano invertido. La profundidad del pozo
+ * o sea el pozo es una gaussiana invertida. La profundidad del pozo
  * esta moduloda por la intensidad de campo magnetico a travez del
  * parametro l dado por:
  *
@@ -33,8 +33,22 @@
  * donde B es la intesidad del campo y alpha es un parametro que toma el
  * valor alpha = 658.4092645439 nm^2/T
  *
- * Se calculan los autovalores para distintos valores del campo
- * magnetico.
+ * La interaccion entre los electrones es una interaccion efectiva en la
+ * direccion de confinamiento y esta dada por:
+ * 
+ * 			V_ef(z1,z2) = sqrt(0.5*pi)/l*exp(x^2)*(1 - erf(x))
+ * 
+ * donde x = abs(z1-z2)/(sqrt(0.5)*l) y erf(x) es la funcion error.
+ * 
+ * El programa calcula los autavolres del hamiltoniano:
+ * 
+ * 			H(1,2) = h(1) + h(2) + lambda*V_ef(1,2)
+ * 
+ * donde nos quedamos con los estados simetricos del sistema y lambda
+ * es la carga efectiva.
+ *
+ * Se calculan los autovalores para distintos valores de lambda
+ * en el intervalo [0, 1]
  *
 */
 
@@ -378,10 +392,6 @@ void calculo_interaccion(unsigned int nb,
 	double * Sp;
 	double * f;
 
-	FILE * nana;
-	nana = fopen("potencial.dat", "w");
-
-
 	l_campo = sqrt(2.0*alpha/B_CAMPO)/a0;
 	cte = sqrt(0.5*pi)/l_campo;
 
@@ -442,7 +452,6 @@ void calculo_interaccion(unsigned int nb,
 		}
 	}
 
-	fclose(nana);
 	free(Sp);
 	free(f);
 
@@ -604,6 +613,8 @@ int main(void) {
 	double *v_ef;
 	double t_in, t_fin;
 	FILE * archivo;
+	char name [150];
+	int int_name;
 
 	nk = L + 2*KORD - 1; // numero de knots //
 	nb = nk - KORD - 2; // tamaño de la base //
@@ -612,7 +623,10 @@ int main(void) {
 	assert(INTG>KORD);
 	assert(NEV>0);
 
-	archivo = fopen("./resultados/2e-E_vs_lambda.dat", "w");
+	int_name = sprintf(name, "./resultados/2e-E_vs_lambda-B%2.0fT-zmax%3.0fnm.dat", B_CAMPO, RMAX );
+	int_name = int_name + 1;
+
+	archivo = fopen(name, "w");
 	// imprimo los parametros //
 	fprintf(archivo, "# Rmin = %.12f y RMAX = %.12f\n", RMIN, RMAX);
 	fprintf(archivo, "# Numero de intervalos l = %i\n", L);
