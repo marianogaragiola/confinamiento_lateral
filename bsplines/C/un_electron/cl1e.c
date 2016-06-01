@@ -448,6 +448,8 @@ int main(void) {
 	double *s, *v0, *ke;
 	double t_in, t_fin;
 	FILE * archivo;
+	char name [150];
+	int int_name;
 
 	nk = L + 2*KORD - 1; // numero de knots //
 	nb = nk - KORD - 2; // tamaño de la base //
@@ -456,7 +458,10 @@ int main(void) {
 	assert(INTG>KORD);
 	assert(NEV>0);
 
-	archivo = fopen("./resultados/autovalores_pozo-1.dat", "w");
+	int_name = sprintf(name, "./resultados/1e-E_vs_B-zmax%3.0fnm.dat", RMAX);
+	int_name = int_name + 1;
+
+	archivo = fopen(name, "w");
 	// imprimo los parametros //
 	fprintf(archivo, "# Rmin = %.12f y RMAX = %.12f\n", RMIN, RMAX);
 	fprintf(archivo, "# Numero de intervalos l = %i\n", L);

@@ -6,18 +6,18 @@ CFLAGS			= -O3 -cpp -std=gnu99 -Wall -Wextra -fopenmp
 LDFLAGS			= -llapack -lm
 
 # Default Values
-RMIN				= -150.0
-RMAX				= 150.0
-L						= 50
+RMIN				= -200.0
+RMAX				= 200.0
+L						= 70
 KORD				= 5
-INTG				= 50
-NEV					= 30
+INTG				= 60
+NEV					= 40
 ME					= 0.063
 V_POZO			= 0.05
 SIGMA				= 20.0
-B_CAMPO_I		= 5.0
+B_CAMPO_I		= 10.0
 B_CAMPO_F		= 100.0
-NUM_B				= 95
+NUM_B				= 90
 
 # Simulation Parameters
 PARAMETERS	= -DRMIN=$(RMIN) -DRMAX=$(RMAX) -DL=$(L) -DKORD=$(KORD) -DINTG=$(INTG) -DNEV=$(NEV) \

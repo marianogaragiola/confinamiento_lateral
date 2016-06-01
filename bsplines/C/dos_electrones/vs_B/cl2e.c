@@ -607,7 +607,7 @@ int main(void) {
 	assert(INTG>KORD);
 	assert(NEV>0);
 
-	int_name = sprintf(name, "./resultados/2e-E_vs_B-lambda%4.0fT-zmax%3.0fnm.dat", LAMBDA, RMAX );
+	int_name = sprintf(name, "./resultados/2e-E_vs_B-lambda%4.2fT-zmax%3.0fnm.dat", LAMBDA, RMAX );
 	int_name = int_name + 1;
 
 	archivo = fopen(name, "w");
