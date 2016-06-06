@@ -6,23 +6,23 @@ CFLAGS			= -O3 -cpp
 LDFLAGS			= -llapack #-mkl=sequential -lmkl_lapack95_lp64 -lpthread -lm
 
 # Default Values
-zmin_			= -150.d0
-zmax_			= 150.d0
+zmin_			= -2000.d0
+zmax_			= 2000.d0
 z0_			= 0.d0
 sigma_			= 20.d0
 lum_			= 0
 c_			= 0.d0
 gamma_			= 0.d0
 kord_			= 5
-l_			= 50
-intg_			= 50
+l_			= 70
+intg_			= 60
 nev_			= 50
 V0_			= 0.05d0
 B_campo_i_		= 10.d0
 B_campo_f_		= 100.d0
 num_puntos_B_		= 90
 me_			= 0.063d0
-lambda_			= 0.7d0
+lambda_			= 0.4d0
 
 # OFILE			= [CPU,$(Q),$(L),$(SAMPLES),$(TEMP_MIN),$(TEMP_MAX),$(DELTA_TEMP),$(TRAN),$(TMAX),$(DELTA_T)].dat
 

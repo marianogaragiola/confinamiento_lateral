@@ -6,10 +6,12 @@ CFLAGS			= -O3 -cpp -std=gnu99 -Wall -Wextra -fopenmp
 LDFLAGS			= -llapack -lm
 
 # Default Values
-RMIN				= -200.0
-RMAX				= 200.0
+RMIN				= -1000.0
+RMAX				= 1000.0
 L						= 70
 KORD				= 5
+TYPE				= 2 # TYPE = 1 es distribucion uniforme, TYPE = 2 es distribucion exponencial
+BETA				= 0.0065 # este valor anda bien para RMAX = 1000 y distribucion exponencial
 INTG				= 60
 NEV					= 40
 ME					= 0.063
@@ -20,7 +22,7 @@ B_CAMPO_F		= 100.0
 NUM_B				= 90
 
 # Simulation Parameters
-PARAMETERS	= -DRMIN=$(RMIN) -DRMAX=$(RMAX) -DL=$(L) -DKORD=$(KORD) -DINTG=$(INTG) -DNEV=$(NEV) \
+PARAMETERS	= -DRMIN=$(RMIN) -DRMAX=$(RMAX) -DL=$(L) -DKORD=$(KORD) -DTYPE=$(TYPE) -DBETA=$(BETA) -DINTG=$(INTG) -DNEV=$(NEV) \
 							-DME=$(ME) -DV_POZO=$(V_POZO) -DSIGMA=$(SIGMA) -DB_CAMPO_I=$(B_CAMPO_I) \
 							-DB_CAMPO_F=$(B_CAMPO_F) -DNUM_B=$(NUM_B)
 # Compilers

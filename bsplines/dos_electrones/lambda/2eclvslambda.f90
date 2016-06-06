@@ -141,7 +141,7 @@ integer :: i, j
 real(8), parameter :: alpha = 658.4092645439d0, a0 = 0.0529177210d0, eV = 27.21138564d0
 real(8) :: time
 character(150) :: archivo1e, archivo2e
-character(1) :: z1, z2, z3, l1, l2, l3
+character(1) :: z1, z2, z3, z4, l1, l2, l3
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 zmin = zmin_; zmax = zmax_ ! valores de inicio y final del intervalo de integracion
@@ -150,7 +150,7 @@ z0 = z0_ ! centro del pozo
 
 sigma = sigma_ ! ancho del pozo.
 
-tip = 'u' ! tipo de distribucion de knots, u, e, m
+tip = 'e' ! tipo de distribucion de knots, u, e, m
 
 lum = lum_ ! # de intervalors u en m
 
@@ -192,6 +192,7 @@ V0 = V0/(1.d0+ll**2/(2.d0*sigma**2));
 
 ! paso el parametro del potencial a unidades atomicas
 ll = ll/a0; z0 = z0/a0; zmin = zmin/a0; zmax = zmax/a0; sigma = sigma/a0;
+gamma = gamma/a0;
 
 V0 = V0/eV; ! paso a unidades atomicas el pozo
 
@@ -201,6 +202,7 @@ B2 = char(modulo(int(B_campo), 100)/10 + 48);
 z1 = char(modulo(int(a0*zmax), 10) + 48);
 z2 = char(modulo(int(a0*zmax), 100)/10 + 48); 
 z3 = char(modulo(int(a0*zmax), 1000)/100 + 48);
+z4 = char(modulo(int(a0*zmax), 10000)/1000 + 48);
 
 l1 = char(modulo(int(l), 10) + 48);
 l2 = char(modulo(int(l), 100)/10 + 48);
@@ -209,8 +211,8 @@ l3 = char(modulo(int(l), 1000)/100 + 48);
 !###########################################################
 !###########################################################
 !###########################################################
-archivo1e = './resultados/B'//B2//B1//'T/1e-E_vs_lambda-B'//B2//B1//'T-zmax'//z3//z2//z1//'-l'//l3//l2//l1//'.dat';
-archivo2e = './resultados/B'//B2//B1//'T/2e-E_vs_lambda-B'//B2//B1//'T-zmax'//z3//z2//z1//'-l'//l3//l2//l1//'.dat';
+archivo1e = './resultados/B'//B2//B1//'T/1e-E_vs_lambda-B'//B2//B1//'T-zmax'//z4//z3//z2//z1//'-l'//l3//l2//l1//'.dat';
+archivo2e = './resultados/B'//B2//B1//'T/2e-E_vs_lambda-B'//B2//B1//'T-zmax'//z4//z3//z2//z1//'-l'//l3//l2//l1//'.dat';
 open(9, file=archivo2e)
 open(10, file=archivo1e)
 !###########################################################
@@ -313,6 +315,10 @@ allocate( norma(nb), s(nb,nb), v01(nb,nb), ke(nb,nb))
 allocate( Vef(nb, nb, nb, nb))
 
 call  KNOTS_PESOS( kord, tip, gamma, zmin, zmax, c, l, lum, intg, t, k, x, w, pl);
+
+do i = 1, nk
+  write(20,*) a0*t(i)
+end do
 
 call matrix_elements( );
 

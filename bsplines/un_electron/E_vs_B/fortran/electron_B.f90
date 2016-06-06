@@ -162,6 +162,7 @@ cV03 = char(modulo(int(1000*V0), 1000)/100 + 48);
 !!!!! Paso todo a unidades atomicas
 V0 = V0/eV;
 zmin = zmin/a0; zmax = zmax/a0; z0 = z0/a0; sigma = sigma/a0;
+gamma = gamma/a0;
 
 !###########################################################
 !###########################################################
@@ -249,7 +250,7 @@ allocate( norma(nb), s(nb,nb), v01(nb,nb), ke(nb,nb))
 
 delta = (B_f-B_i)/dble(numero_puntos_B)
 
-call  KNOTS_PESOS( kord, tip, gamma, zmin, zmax, c, l, lum, intg, t, k, x, w, pl)
+call KNOTS_PESOS(kord, tip, gamma, zmin, zmax, c, l, lum, intg, t, k, x, w, pl)
 
 VB = 0.d0;
 do ind = 0, numero_puntos_B

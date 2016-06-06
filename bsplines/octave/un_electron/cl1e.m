@@ -23,7 +23,7 @@ num_break_points = num_intervalos + 1; % numero de break points contando los ext
 kord             = 5; % orden de los bsplines, el grado de los polinomios es kord-1
 regularity       = kord-2; % repeticion de los knots, simplemente degenerados por eso kord-2
 xMax             = 150; % extremo superior del intervalo
-xMin             = -xMax; % extremo inferior del intervalo
+xMin             = 0; % extremo inferior del intervalo
 N_cuad           = 1000;
 N_base = num_intervalos + kord - 1;
 

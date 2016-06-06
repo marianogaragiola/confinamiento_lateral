@@ -66,6 +66,14 @@
 #define KORD 5 // orden de los B-splines, el grado es KORD-1 //
 #endif
 
+#ifndef TYPE
+#define TYPE 1 // tipo de distribucion de knots //
+#endif
+
+#ifndef BETA
+#define BETA 1.0 // Parametro de decaimiento de la distribucion exponencial //
+#endif
+
 #ifndef INTG
 #define INTG 100 // grado de integracion por cuadratura //
 #endif
@@ -109,6 +117,9 @@ int dsygvx_(int *itype, char *jobz, char *range, char *	uplo,
 	int *m, double *w, double *z__,	int *ldz, double *work,
 	int *lwork, int *iwork, int *ifail, int *info);
 
+int sgn(double x){
+	return (x < 0) ? -1 : (x > 0);
+}
 
 int idx(unsigned int y, unsigned int x, unsigned int numcolumns){
 	return y*numcolumns + x;
@@ -165,7 +176,58 @@ void gauleg(double x1, double x2, double x[], double w[], int n) {
 	}
 }
 
-int KNOTS_PESOS(unsigned int nk, int * __restrict__ k,
+int KNOTS_PESOS_EXP(unsigned int nk, int * __restrict__ k,
+		double * __restrict__ t, double * __restrict__ x,
+		double * __restrict__ w) {
+
+	double Rmin, Rmax, dr;
+	double xi;
+	double length;
+	double beta;
+
+	beta = BETA; //0.0065;
+	Rmax = RMAX; Rmin = RMIN;
+
+	length = (Rmax - Rmin)/(sgn(Rmax)*exp(beta*sgn(Rmax)*Rmax) - sgn(Rmin)*exp(beta*sgn(Rmin)*Rmin));
+
+	dr = (Rmax - Rmin)/L;
+
+	t[0] = Rmin; k[0] = 0;
+
+	for(unsigned int i = 1; i<KORD; ++i){
+		t[i] = t[i-1]; k[i] = k[i-1];
+	}
+
+	for(unsigned int i = KORD; i<KORD+L; ++i){
+		xi = (i-KORD+1)*dr + Rmin;
+		t[i] = length*sgn(xi)*exp(beta*sgn(xi)*xi);
+		k[i] = k[i-1] + 1;
+	}
+
+	for(unsigned int i = KORD+L; i<nk; ++i) {
+		t[i] = t[i-1]; k[i] = k[i-1];
+	}
+
+	double vx[INTG+1], vw[INTG+1];
+
+	gauleg(-1.0, 1.0, vx, vw, INTG);
+
+	for(unsigned int i = 0; i<L; ++i) {
+		for(unsigned int j = 0; j<INTG; ++j) {
+			x[idx(i, j, INTG)] = 0.5*(t[i+1+KORD] - t[i+KORD])*vx[j+1] + 0.5*(t[i+1+KORD] + t[i+KORD]) ;
+			x[idx(i, j, INTG)] = x[idx(i, j, INTG)]/a0;
+			w[idx(i, j, INTG)] = 0.5*(t[i+1+KORD] - t[i+KORD])*vw[j+1];
+		}
+	}
+
+	for(unsigned int i = 0; i<nk; ++i){
+		t[i] = t[i]/a0;
+	}
+
+	return 0;
+}
+
+int KNOTS_PESOS_UNIF(unsigned int nk, int * __restrict__ k,
 		double * __restrict__ t, double * __restrict__ x,
 		double * __restrict__ w){
 
@@ -495,7 +557,12 @@ int main(void) {
 
 	t_in = omp_get_wtime();
 	// primero calculos los knost y los pesos para hacer la cuadratura //
-	KNOTS_PESOS(nk, k, t, x, w);
+//	KNOTS_PESOS_EXP(nk, k, t, x, w);
+	if(1==TYPE) {
+		KNOTS_PESOS_UNIF(nk, k, t, x, w);
+	} else if(2==TYPE) {
+		KNOTS_PESOS_EXP(nk, k, t, x, w);
+	}
 
 	// calculo las matrices que necesito para resolver el problema //
 	calculo_matrices(nk, nb, k, t, x, w, s, v0, ke);

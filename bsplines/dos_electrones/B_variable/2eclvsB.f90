@@ -144,7 +144,7 @@ integer :: i, j, ind_B
 real(8), parameter :: alpha = 658.4092645439d0, a0 = 0.0529177210d0, eV = 27.21138564d0
 real(8) :: time
 character(150) :: archivo1e, archivo2e
-character(1) :: z1, z2, z3, l1, l2, l3
+character(1) :: z1, z2, z3, z4, l1, l2, l3
 character(1) :: la1, la2, la3
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
@@ -201,6 +201,7 @@ la3 = char(modulo(int(100.d0*lambda), 1000)/100 + 48);
 z1 = char(modulo(int(a0*zmax), 10) + 48);
 z2 = char(modulo(int(a0*zmax), 100)/10 + 48);
 z3 = char(modulo(int(a0*zmax), 1000)/100 + 48);
+z4 = char(modulo(int(a0*zmax), 10000)/1000 + 48);
 
 l1 = char(modulo(int(l), 10) + 48);
 l2 = char(modulo(int(l), 100)/10 + 48);
@@ -209,8 +210,8 @@ l3 = char(modulo(int(l), 1000)/100 + 48);
 !###########################################################
 !###########################################################
 !###########################################################
-archivo1e = './resultados/1e-E_vs_B-zmax'//z3//z2//z1//'-l'//l3//l2//l1//'.dat';
-archivo2e = './resultados/2e-E_vs_B-lambda'//la3//la2//la1//'-zmax'//z3//z2//z1//'-l'//l3//l2//l1//'.dat';
+archivo1e = './resultados/1e-E_vs_B-zmax'//z4//z3//z2//z1//'-l'//l3//l2//l1//'.dat';
+archivo2e = './resultados/2e-E_vs_B-lambda'//la3//la2//la1//'-zmax'//z4//z3//z2//z1//'-l'//l3//l2//l1//'.dat';
 open(9, file=archivo2e)
 open(10, file=archivo1e)
 write(10,*) ''
