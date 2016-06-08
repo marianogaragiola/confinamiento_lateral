@@ -6,10 +6,12 @@ CFLAGS			= -O3 -g -cpp -std=gnu99 -Wall -Wextra -fopenmp
 LDFLAGS			= -llapack -lm
 
 # Default Values
-RMIN				= -2000.0
-RMAX				= 2000.0
+RMIN				= -1000.0
+RMAX				= 1000.0
 L						= 70
 KORD				= 5
+BETA				= 0.0065
+TYPE				= 2
 INTG				= 60
 NEV					= 40
 ME					= 0.063
@@ -21,7 +23,7 @@ LAMBDA_F		= 1.0
 NUM_LAMBDA	= 20
 
 # Simulation Parameters
-PARAMETERS	= -DRMIN=$(RMIN) -DRMAX=$(RMAX) -DL=$(L) -DKORD=$(KORD) -DINTG=$(INTG) -DNEV=$(NEV) \
+PARAMETERS	= -DRMIN=$(RMIN) -DRMAX=$(RMAX) -DL=$(L) -DKORD=$(KORD) -DBETA=$(BETA) -DTYPE=$(TYPE) -DINTG=$(INTG) -DNEV=$(NEV) \
 							-DME=$(ME) -DV_POZO=$(V_POZO) -DSIGMA=$(SIGMA) -DB_CAMPO=$(B_CAMPO) \
 							-DLAMBDA_I=$(LAMBDA_I) -DLAMBDA_F=$(LAMBDA_F) -DNUM_LAMBDA=$(NUM_LAMBDA)
 # Compilers

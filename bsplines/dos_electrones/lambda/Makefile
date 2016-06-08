@@ -7,8 +7,8 @@ CFLAGS			= -O3 -cpp
 LDFLAGS			= -llapack #-mkl=sequential -lmkl_lapack95_lp64 -lpthread -lm
 
 # Default Values
-zmin_			= -2000.d0
-zmax_			= 2000.d0
+zmin_			= -1000.d0
+zmax_			= 1000.d0
 z0_			= 0.d0
 sigma_			= 20.d0
 lum_			= 0

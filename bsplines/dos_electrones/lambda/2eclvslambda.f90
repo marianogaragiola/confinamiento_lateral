@@ -157,6 +157,7 @@ lum = lum_ ! # de intervalors u en m
 c = c_ ! parametod en m dist u en [a,c] y e en (c,b]
 
 gamma = gamma_ ! parametro de la exponencial
+gamma = gamma/a0;
 
 kord = kord_ ! orden de los B-splines
 

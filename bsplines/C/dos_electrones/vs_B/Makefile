@@ -1,15 +1,17 @@
 # Binary file
-BIN					= cl2e
+BIN					= cl2e-2
 
 # Flags
 CFLAGS			= -O3 -g -cpp -std=gnu99 -Wall -Wextra -fopenmp
 LDFLAGS			= -llapack -lm
 
 # Default Values
-RMIN				= -2000.0
-RMAX				= 2000.0
+RMIN				= -1000.0
+RMAX				= 1000.0
 L						= 70
 KORD				= 5
+BETA				= 0.0065
+TYPE				= 2
 INTG				= 60
 NEV					= 40
 ME					= 0.063
@@ -21,7 +23,7 @@ B_CAMPO_F		= 100.0
 NUM_B				= 90
 
 # Simulation Parameters
-PARAMETERS	= -DRMIN=$(RMIN) -DRMAX=$(RMAX) -DL=$(L) -DKORD=$(KORD) -DINTG=$(INTG) -DNEV=$(NEV) \
+PARAMETERS	= -DRMIN=$(RMIN) -DRMAX=$(RMAX) -DL=$(L) -DKORD=$(KORD) -DBETA=$(BETA) -DTYPE=$(TYPE) -DINTG=$(INTG) -DNEV=$(NEV) \
 							-DME=$(ME) -DV_POZO=$(V_POZO) -DSIGMA=$(SIGMA) -DLAMBDA=$(LAMBDA) \
 							-DB_CAMPO_I=$(B_CAMPO_I) -DB_CAMPO_F=$(B_CAMPO_F) -DNUM_B=$(NUM_B)
 # Compilers

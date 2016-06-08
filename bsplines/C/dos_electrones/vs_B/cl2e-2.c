@@ -1,4 +1,4 @@
-/* Programa en C que resuelve el problema de una particula
+/* Programa en C que resuelve el problema de dos electrones interactuantes
  * en un pozo de potencial usando B-splines.
  * Usa el metodo variacional de Rayleight-Ritz usando como base del
  * espacio los B-splines, como esta no es una base ortonormal el
@@ -20,11 +20,11 @@
  * bder() respectivamente, son versiones hechas por mi a partir de las
  * versiones de fortran.
  *
- * EL programa calcula los autovalores para un potencial de la forma:
+ * EL potencial de confinamiento de cada electron es de la forma:
  *
  * 			V(z) = -V0*exp(-0.5*z^2/sigma^2)/(1 + 0.5*l^2/sigma^2)
  *
- * o sea el pozo es una gaussiano invertido. La profundidad del pozo
+ * o sea el pozo es una gaussiana invertida. La profundidad del pozo
  * esta moduloda por la intensidad de campo magnetico a travez del
  * parametro l dado por:
  *
@@ -33,8 +33,22 @@
  * donde B es la intesidad del campo y alpha es un parametro que toma el
  * valor alpha = 658.4092645439 nm^2/T
  *
- * Se calculan los autovalores para distintos valores del campo
- * magnetico.
+ * La interaccion entre los electrones es una interaccion efectiva en la
+ * direccion de confinamiento y esta dada por:
+ *
+ * 			V_ef(z1,z2) = sqrt(0.5*pi)/l*exp(x^2)*(1 - erf(x))
+ *
+ * donde x = abs(z1-z2)/(sqrt(0.5)*l) y erf(x) es la funcion error.
+ *
+ * El programa calcula los autavolres del hamiltoniano:
+ *
+ * 			H(1,2) = h(1) + h(2) + lambda*V_ef(1,2)
+ *
+ * donde nos quedamos con los estados simetricos del sistema y lambda
+ * es la carga efectiva.
+ *
+ * Se calculan los autovalores para distintos valores de intensidad del
+ * campo magnetido.
  *
 */
 
@@ -94,8 +108,12 @@
 #define SIGMA 20.0 // ancho del pozo en nm //
 #endif
 
+#ifndef LAMBDA
+#define LAMBDA 50.0 // campo magnetico inicial //
+#endif
+
 #ifndef B_CAMPO_I
-#define B_CAMPO_I 0.0 // campo magnetico inicial //
+#define B_CAMPO_I 5.0 // carga efectiva //
 #endif
 
 #ifndef B_CAMPO_F
@@ -103,12 +121,13 @@
 #endif
 
 #ifndef NUM_B
-#define NUM_B 200 // numero de puntos para calcular //
+#define NUM_B 20 // numero de puntos para calcular //
 #endif
 
 #define a0 0.0529177210
 #define eV 27.21138564
 #define alpha 658.4092645439
+#define pi 3.1415926535897
 
 // escribo las funciones del programa //
 int dsygvx_(int *itype, char *jobz, char *range, char *	uplo,
@@ -123,6 +142,10 @@ int sgn(double x){
 
 int idx(unsigned int y, unsigned int x, unsigned int numcolumns){
 	return y*numcolumns + x;
+}
+
+int idx2(unsigned int y1, unsigned int x1, unsigned int y2, unsigned int x2, unsigned int numcolumns) {
+	return idx(y1, x1, numcolumns)*numcolumns*numcolumns + idx(x2, y2, numcolumns);
 }
 
 int cleari(unsigned int N, int * __restrict__ vec) {
@@ -214,9 +237,9 @@ int KNOTS_PESOS_EXP(unsigned int nk, int * __restrict__ k,
 
 	for(unsigned int i = 0; i<L; ++i) {
 		for(unsigned int j = 0; j<INTG; ++j) {
-			x[idx(i, j, INTG)] = 0.5*(t[i+KORD] - t[i+KORD-1])*vx[j+1] + 0.5*(t[i+KORD] + t[i+KORD-1]) ;
+			x[idx(i, j, INTG)] = 0.5*(t[i+1+KORD] - t[i+KORD])*vx[j+1] + 0.5*(t[i+1+KORD] + t[i+KORD]) ;
 			x[idx(i, j, INTG)] = x[idx(i, j, INTG)]/a0;
-			w[idx(i, j, INTG)] = 0.5*(t[i+KORD] - t[i+KORD-1])*vw[j+1];
+			w[idx(i, j, INTG)] = 0.5*(t[i+1+KORD] - t[i+KORD])*vw[j+1];
 		}
 	}
 
@@ -421,6 +444,80 @@ void calculo_matrices(unsigned int nk, unsigned int nb,
 	free(Sp);
 }
 
+void calculo_interaccion(unsigned int nb, double l_campo,
+		 int * __restrict__ k, double * __restrict__ t, double * __restrict__  x,
+		 double * __restrict__ w, double * __restrict__ v_ef ) {
+
+	unsigned int im, in, imp;
+	double rr1, rr2, ww1, ww2;
+	double r12, _r12, cte;
+	double * Sp;
+	double * f;
+
+	cte = sqrt(0.5*pi)/l_campo;
+
+	Sp = (double *) calloc(KORD, sizeof(double));
+	f = (double *) calloc(nb*nb, sizeof(double));
+	// ojo con los limites en los for's //
+	for(unsigned int i1 = KORD-1; i1<KORD+L-1; ++i1) {
+		for(unsigned int j1 = 0; j1<INTG; ++j1) {
+			rr1 = x[idx(k[i1], j1, INTG)]; ww1 = w[idx(k[i1], j1, INTG)];
+
+			cleard(nb*nb, f);
+			for(unsigned int i2 = KORD-1; i2<KORD+L-1; ++i2) {
+				for(unsigned int j2 = 0; j2<INTG; ++j2) {
+					rr2 = x[idx(k[i2], j2, INTG)]; ww2 = w[idx(k[i2], j2, INTG)];
+
+					r12 = sqrt(0.5)*fabs(rr1 - rr2)/l_campo;
+					_r12 = 1.0/r12;
+
+					bsplvb(t, KORD, 1, rr2, i2, Sp);
+
+					for(unsigned int m = 0; m<KORD; ++m) {
+            im = i2-KORD+m;
+            if(im<nb) {
+              for(unsigned int n = 0; n<KORD; ++n) {
+                in = i2-KORD+n;
+                if(in<nb) {
+
+									if( r12 < 5.0 ) {
+										f[idx(im, in, nb)] += Sp[m]*Sp[n]*ww2*cte*exp(r12*r12)*(1.0 - erf(r12));
+									}else{
+										f[idx(im, in, nb)] += Sp[m]*Sp[n]*ww2/l_campo*(sqrt(0.5)*_r12 - pow(sqrt(0.5)*_r12, 3));
+									}
+                }
+              }
+            }
+          }
+				}
+			}
+
+			cleard(KORD ,Sp);
+			bsplvb(t, KORD, 1, rr1, i1, Sp);
+
+			for(unsigned int m = 0; m<KORD; ++m) {
+				im = i1-KORD+m;
+				if(im<nb) {
+					for(unsigned int mp = 0; mp<KORD; ++mp) {
+						imp = i1-KORD+mp;
+						if(imp<nb) {
+							for(unsigned int n = 0; n<nb; ++n) {
+								for(unsigned int np = 0; np<nb; ++np) {
+									v_ef[idx2(im, n, imp, np, nb)] += Sp[m]*Sp[mp]*ww1*f[idx(n, np, nb)];
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	free(Sp);
+	free(f);
+
+}
+
 
 void eigenvalues(int n, int m, double * __restrict__ a,
 		 double * __restrict__ b, double * __restrict__ w,
@@ -437,7 +534,7 @@ void eigenvalues(int n, int m, double * __restrict__ a,
 	itype = 1; lda = n; ldb = n; ldz = n;
 	vl = 0.0; vu = 0.0;
 	jobz = 'V'; range = 'I'; uplo = 'U';
-	il = 1; iu = m; lwork = 9*n;
+	il = 1; iu = m; lwork = 8*n;
 
 	// le doy memoria a las matrices que neceista dsygvx //
 	work = (double *) malloc(lwork*sizeof(double));
@@ -448,57 +545,107 @@ void eigenvalues(int n, int m, double * __restrict__ a,
 		 &vl, &vu, &il, &iu, &abstol, &m, w, z, &ldz, work,
 		 &lwork, iwork, ifail, &info);
 
+	if(0!=info) {
+		printf("Hay un error en dsyvx_, info = %i\n", info);
+		assert(0==info);
+	}
+
 	free(work);
 	free(iwork);
 	free(ifail);
 }
 
-void hamiltoniano_autovalores(unsigned int nb, double * __restrict__ s,
-			      double * __restrict__ v0, double * __restrict__ ke,
+void hamiltoniano_autovalores(unsigned int nb, double l_campo, double * __restrict__ s,
+			      double * __restrict__ v0, double * __restrict__ ke, double * __restrict__ v_ef,
 			      FILE * archivo) {
 
-	double * h, * auval, * auvec, * s_copy;
-	double B_campo, delta_B, l_campo;
+	unsigned int n_dim, ind1, ind2;
+	double * h, * auval, * auvec; //, * s_copy;
+	double * h_sim, * s_sim;
   double b, v_pozo;
+	double raiz;
+
+	raiz = sqrt(0.5);
+
+	n_dim = nb*(nb+1)/2; // dimension de H simetrico //
 
   b = 0.5*a0*a0/(SIGMA*SIGMA);
 	v_pozo = V_POZO/eV;
 
 	// doy memoria a las matrices y vectores //
 	h = (double *) calloc( nb*nb, sizeof(double));
-	s_copy = (double *) calloc( nb*nb, sizeof(double));
+//	s_copy = (double *) calloc( nb*nb, sizeof(double));
+
+	h_sim = (double *) calloc( n_dim*n_dim, sizeof(double));
+	s_sim = (double *) calloc( n_dim*n_dim, sizeof(double));
 	auval = (double *) calloc( NEV, sizeof(double));
-	auvec = (double *) calloc( NEV*nb, sizeof(double));
+	auvec = (double *) calloc( NEV*n_dim, sizeof(double));
 
-	delta_B = (B_CAMPO_F - B_CAMPO_I)/NUM_B;
-
-	// abro el archivo para guardar los datos //
-	fprintf(archivo, "# Autovalores calculados\n");
-	fprintf(archivo, "# Lambda  auval[0]   auval[1] ....\n");
-
-	for(unsigned int ind_B = 0; ind_B<=NUM_B; ++ind_B) {
-
-		B_campo = B_CAMPO_I + delta_B*ind_B;
-		l_campo = sqrt(2.0*alpha/B_campo)/a0;
-
-		for(unsigned int m = 0; m<nb; ++m) {
-			for(unsigned int n = 0; n<nb; ++n){
-				h[idx(n, m, nb)] = ke[idx(n, m, nb)] - v_pozo/(1.0 + l_campo*l_campo*b)*v0[idx(n, m, nb)];
-				s_copy[idx(n, m, nb)] = s[idx(n, m, nb)];
-			}
+	// Hamiltoniano de un electron //
+	for(unsigned int m = 0; m<nb; ++m) {
+		for(unsigned int n = 0; n<nb; ++n){
+			h[idx(n, m, nb)] = ke[idx(n, m, nb)] - v_pozo/(1.0 + l_campo*l_campo*b)*v0[idx(n, m, nb)];
+//			s_copy[idx(n, m, nb)] = s[idx(n, m, nb)];
 		}
-
-		eigenvalues( nb, NEV, h, s_copy, auval, auvec );
-
-		fprintf(archivo, "%.5f   ", B_campo);
-		for(unsigned int i = 0; i < NEV; ++i) {
-			fprintf(archivo, "%.15f   ", eV*auval[i]);
-		}
-		fprintf(archivo, "\n");
-
 	}
 
-	free(h); free(s_copy); free(auval); free(auvec);
+	// Hamiltoniano de dos electrones simetrico //
+	ind1 = 0;
+	for(unsigned int n = 0; n<nb; ++n) {
+		for(unsigned int m = 0; m<=n; ++m) {
+
+			ind2 = 0;
+			for(unsigned int np = 0; np<nb; ++np) {
+				for(unsigned int mp = 0; mp<=np; ++mp) {
+
+					if(m==n && mp==np){
+
+						h_sim[idx(ind1, ind2, n_dim)] = 2.0*s[idx(n,np,nb)]*h[idx(n,np,nb)] + LAMBDA*v_ef[idx2(n,n,np,np,nb)];
+						s_sim[idx(ind1, ind2, n_dim)] = s[idx(n,np,nb)]*s[idx(n,np,nb)];
+
+					} else if(m!=n && mp==np ) {
+
+						h_sim[idx(ind1, ind2, n_dim)] = raiz*( 2.0*s[idx(m,np,nb)]*h[idx(n,np,nb)] + 2.0*s[idx(n,np,nb)]*h[idx(m,np,nb)]
+						                              + LAMBDA*v_ef[idx2(n,m,np,np,nb)] + LAMBDA*v_ef[idx2(m,n,np,np,nb)] );
+						s_sim[idx(ind1, ind2, n_dim)] = 2.0*raiz*s[idx(n,np,nb)]*s[idx(m,np,nb)];
+
+					} else if(m==n && mp!=np) {
+
+						h_sim[idx(ind1, ind2, n_dim)] = raiz*( 2.0*s[idx(n,mp,nb)]*h[idx(n,np,nb)] + 2.0*s[idx(n,np,nb)]*h[idx(n,mp,nb)]
+						                              + LAMBDA*v_ef[idx2(n,n,np,mp,nb)] + LAMBDA*v_ef[idx2(n,n,mp,np,nb)] );
+						s_sim[idx(ind1, ind2, n_dim)] = 2.0*raiz*s[idx(n,np,nb)]*s[idx(n,mp,nb)];
+
+					} else if(m!=n && mp!=np) {
+
+						h_sim[idx(ind1, ind2, n_dim)] = s[idx(n,np,nb)]*h[idx(m,mp,nb)] + s[idx(n,mp,nb)]*h[idx(m,np,nb)]
+						                              + s[idx(m,mp,nb)]*h[idx(n,np,nb)] + s[idx(m,np,nb)]*h[idx(n,mp,nb)]
+						                              + 0.5*LAMBDA*(v_ef[idx2(n,m,np,mp,nb)] + v_ef[idx2(n,m,mp,np,nb)]
+                                                      + v_ef[idx2(m,n,np,mp,nb)] + v_ef[idx2(m,n,mp,np,nb)]);
+						s_sim[idx(ind1, ind2, n_dim)] = s[idx(n,np,nb)]*s[idx(m,mp,nb)] + s[idx(n,mp,nb)]*s[idx(m,np,nb)];
+
+					}
+
+
+					ind2 = ind2 + 1;
+				}
+			}
+			ind1 = ind1 + 1;
+		}
+	}
+
+	eigenvalues( n_dim, NEV, h_sim, s_sim, auval, auvec );
+
+//	fprintf(archivo, "%.5f   ", b_campo);
+	for(unsigned int i = 0; i < NEV; ++i) {
+		fprintf(archivo, "%.15f   ", eV*auval[i]);
+	}
+	fprintf(archivo, "\n");
+
+	free(h);
+	free(h_sim);
+	free(s_sim);
+	free(auval);
+	free(auvec);
 }
 
 int main(void) {
@@ -508,6 +655,8 @@ int main(void) {
 	int *k;
 	double *t, *x, *w;
 	double *s, *v0, *ke;
+	double *v_ef;
+	double b_campo, delta_B, l_campo;
 	double t_in, t_fin;
 	FILE * archivo;
 	char name [150];
@@ -520,11 +669,7 @@ int main(void) {
 	assert(INTG>KORD);
 	assert(NEV>0);
 
-	if( 1==TYPE) {
-		int_name = sprintf(name, "./resultado/dist_unif/1e-E_vs_B-zmax%3.0fnm-L%i.dat", RMAX, L);
-	} else if( 2==TYPE) {
-		int_name = sprintf(name, "./resultados/dist_exp/1e-E_vs_B-zmax%3.0fnm-L%i-beta%.4f.dat", RMAX, L, BETA);
-	}
+	int_name = sprintf(name, "./resultados/2e-E_vs_B-lambda%4.2fT-zmax%3.0fnm.dat", LAMBDA, RMAX );
 	int_name = int_name + 1;
 
 	archivo = fopen(name, "w");
@@ -532,6 +677,8 @@ int main(void) {
 	fprintf(archivo, "# Rmin = %.12f y RMAX = %.12f\n", RMIN, RMAX);
 	fprintf(archivo, "# Numero de intervalos l = %i\n", L);
 	fprintf(archivo, "# Orden los B-splines KORD = %i\n", KORD);
+	fprintf(archivo, "# Parametro de decaimiento exponencial BETA = %.12f\n", BETA);
+	fprintf(archivo, "# Tipo de distribucion de knots TYPE = %i, (1 es uniforme, 2 exponencial)", TYPE);
 	fprintf(archivo, "# Grado de integracion de la cuadratura INTG = %i\n", INTG);
 	fprintf(archivo, "# Numero de autovalores NEV=%i\n", NEV);
 	fprintf(archivo, "# Numero de knots nk=%i\n", nk);
@@ -539,8 +686,11 @@ int main(void) {
 	fprintf(archivo, "# Masa de la particula me = %.12f\n", ME);
   fprintf(archivo, "# Profundidad del pozo V_pozo = %.12f\n", V_POZO);
 	fprintf(archivo, "# Ancho del pozo sigma = %.12f\n", SIGMA);
+  fprintf(archivo, "# Carga efectiva LAMBDA = %.12f\n", LAMBDA);
 	fprintf(archivo, "# B_CAMPO_I = %.12f, B_CAMPO_F = %.12f\n", B_CAMPO_I, B_CAMPO_F);
 	fprintf(archivo, "# Numero de puntos de B NUM_B = %i\n", NUM_B);
+	fprintf(archivo, "# Autovalores calculados\n");
+	fprintf(archivo, "# B_campo  auval[0]   auval[1] ....\n");
 
 	// doy memoria a las matrices que voy a necesitar //
 	k = (int *) malloc( nk*sizeof(int));
@@ -550,35 +700,50 @@ int main(void) {
 	s = (double *) malloc( nb*nb*sizeof(double));
 	v0 = (double *) malloc( nb*nb*sizeof(double));
 	ke = (double *) malloc( nb*nb*sizeof(double));
+	v_ef = (double *) malloc( nb*nb*nb*nb*sizeof(double));
 
 	cleari(nk, k);
 	cleard(nk, t);
 	cleard(L*INTG, x);
 	cleard(L*INTG, w);
-	cleard(nb*nb, s);
-	cleard(nb*nb, v0);
-	cleard(nb*nb, ke);
 
 	t_in = omp_get_wtime();
 	// primero calculos los knost y los pesos para hacer la cuadratura //
-//	KNOTS_PESOS_EXP(nk, k, t, x, w);
 	if(1==TYPE) {
 		KNOTS_PESOS_UNIF(nk, k, t, x, w);
 	} else if(2==TYPE) {
 		KNOTS_PESOS_EXP(nk, k, t, x, w);
 	}
 
+	cleard(nb*nb, s);
+	cleard(nb*nb, v0);
+	cleard(nb*nb, ke);
+
 	// calculo las matrices que necesito para resolver el problema //
 	calculo_matrices(nk, nb, k, t, x, w, s, v0, ke);
+
+	delta_B = (B_CAMPO_F - B_CAMPO_I)/NUM_B;
+
+	for(unsigned int ind_B = 0; ind_B<=NUM_B; ++ind_B) {
+
+		b_campo = B_CAMPO_I + delta_B*ind_B;
+		l_campo = sqrt(2.0*alpha/b_campo)/a0;
+
+		cleard(nb*nb*nb*nb, v_ef);
+		calculo_interaccion(nb, l_campo, k, t, x, w, v_ef);
+
+		fprintf(archivo, "%4.0f   ", b_campo);
+		// armo el hamiltoniano y calculo los autovalores //
+		hamiltoniano_autovalores(nb, l_campo, s, v0, ke, v_ef, archivo);
+
+	}
+
 	t_fin = omp_get_wtime();
-
-	// armo el hamiltoniano y calculo los autovalores //
-	hamiltoniano_autovalores(nb, s, v0, ke, archivo);
-
 	printf("%i     %i     %i     %.12f\n", L, nk, nb, t_fin-t_in);
 
 	// libero la memoria //
 	fclose(archivo);
+	free(v_ef);
 	free(ke);
 	free(v0);
 	free(s);

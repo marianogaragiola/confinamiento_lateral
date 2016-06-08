@@ -11,7 +11,7 @@ RMAX				= 1000.0
 L						= 70
 KORD				= 5
 TYPE				= 2 # TYPE = 1 es distribucion uniforme, TYPE = 2 es distribucion exponencial
-BETA				= 0.0065 # este valor anda bien para RMAX = 1000 y distribucion exponencial
+BETA				= 0.005 # este valor anda bien para RMAX = 1000 y distribucion exponencial
 INTG				= 60
 NEV					= 40
 ME					= 0.063
