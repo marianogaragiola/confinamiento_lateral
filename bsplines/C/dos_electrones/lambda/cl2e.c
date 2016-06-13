@@ -600,7 +600,7 @@ void hamiltoniano_autovalores(unsigned int nb, double * __restrict__ s,
 		}
 	}
 
-	for(unsigned int ind_lambda = 0; ind_lambda<NUM_LAMBDA; ++ind_lambda) {
+	for(unsigned int ind_lambda = 0; ind_lambda<=NUM_LAMBDA; ++ind_lambda) {
 
 		lambda = LAMBDA_I + delta_lambda*ind_lambda;
 
@@ -687,6 +687,8 @@ int main(void) {
 
 	int_name = sprintf(name, "./resultados/2e-E_vs_lambda-B%2.0fT-zmax%3.0fnm-beta%.4f.dat", B_CAMPO, RMAX, BETA );
 	int_name = int_name + 1;
+
+	printf("%f\n", alpha);
 
 	archivo = fopen(name, "w");
 	// imprimo los parametros //
