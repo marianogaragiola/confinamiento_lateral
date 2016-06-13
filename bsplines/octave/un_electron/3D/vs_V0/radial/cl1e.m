@@ -48,7 +48,7 @@ N_base = num_intervalos + kord - 1;
 %% omega_y = 0.0;
 %% omega_z = 0.0;
 
-name = sprintf('./resultados/1e-E_vs_V0-radial.dat');
+name = sprintf('./resultados/1e-E_vs_V0-radial-sigma%2.0fnm.dat', sigma);
 
 file = fopen(name, 'w');
 fprintf(file, '# Num_interavaos = %i \n', num_intervalos)
@@ -79,6 +79,7 @@ knots = (xMax - xMin)*knots + xMin; % knots estaba en [0, 1]
 zeta = (xMax - xMin)*zeta + xMin;   % zeta estaba en [0, 1]
 
 x = 0.5*(xMax - xMin)*x + 0.5*(xMax + xMin); % x estaba en [-1, 1]
+w = 0.5*(xMax - xMin)*w;
 
 %% calculo los bsplines en el vector x
 bs = bspeval(kord-1, c, knots, x);

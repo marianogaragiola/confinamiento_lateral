@@ -40,8 +40,8 @@
 #define c_ 0.d0
 #endif
 
-#ifndef gamma_
-#define gamma_ 0.d0
+#ifndef beta_
+#define beta_ 0.d0
 #endif
 
 #ifndef kord_
@@ -84,7 +84,7 @@
 
 module carga
 integer :: kord, lum, intg, nev, numero_puntos_B
-real(8) :: zmin, zmax, V0, sigma, B_i, B_f, z0, delta, c, gamma, me
+real(8) :: zmin, zmax, V0, sigma, B_i, B_f, z0, delta, c, beta, me
 real(8) :: B, ll, VB
 integer :: l
 character(1) :: tip, cV01, cV02, cV03
@@ -94,12 +94,12 @@ module matrices
 integer :: nk, nb
 real(8), allocatable, dimension(:) :: norma
 real(8), allocatable, dimension(:,:) :: s, v01, ke, aux
-integer, allocatable, dimension(:,:) :: ist, irt, tri
+! integer, allocatable, dimension(:,:) :: ist, irt, tri
 end module matrices
 
 module integracion
 integer, allocatable, dimension(:) :: k
-real(8), allocatable, dimension(:) :: t, sp, dsp
+real(8), allocatable, dimension(:) :: t, sp !, dsp
 real(8), allocatable, dimension(:,:) :: x, w, pl
 end module  integracion
 
@@ -112,7 +112,8 @@ implicit none
 integer :: i, j, ind
 real(8), parameter :: a0 = 0.0529177210d0, eV = 27.21138564d0, alpha = 658.4092645439d0
 real(8) :: time
-
+character(150) :: archivo
+character(1) :: z1, z2, z3, l1, l2, l3
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 zmin = zmin_; zmax = zmax_ ! valores de inicio y final del intervalo de integracion
@@ -121,13 +122,13 @@ z0 = z0_ ! centro del pozo
 
 sigma = sigma_ ! ancho del pozo.
 
-tip = 'u' ! tipo de distribucion de knots, u, e, m
+tip = 'e' ! tipo de distribucion de knots, u, e, m
 
 lum = lum_ ! # de intervalors u en m
 
 c = c_ ! parametod en m dist u en [a,c] y e en (c,b]
 
-gamma = gamma_ ! parametro de la exponencial
+beta = beta_ ! parametro de la exponencial
 
 kord = kord_ ! orden de los B-splines
 
@@ -158,16 +159,25 @@ cV01 = char(modulo(int(1000*V0), 10) + 48);
 cV02 = char(modulo(int(1000*V0), 100)/10 + 48);
 cV03 = char(modulo(int(1000*V0), 1000)/100 + 48);
 
+z1 = char(modulo(int(a0*zmax), 10) + 48);
+z2 = char(modulo(int(a0*zmax), 100)/10 + 48);
+z3 = char(modulo(int(a0*zmax), 1000)/100 + 48);
+
+l1 = char(modulo(int(l), 10) + 48);
+l2 = char(modulo(int(l), 100)/10 + 48);
+l3 = char(modulo(int(l), 1000)/100 + 48);
 
 !!!!! Paso todo a unidades atomicas
 V0 = V0/eV;
 zmin = zmin/a0; zmax = zmax/a0; z0 = z0/a0; sigma = sigma/a0;
-gamma = gamma/a0;
+beta = beta*a0;
 
 !###########################################################
 !###########################################################
 !###########################################################
-open(9,file = './resultados/auval_e_V0='//cV03//cV02//cV01//'meV-sigma20nm.dat')
+!archivo = './resultados/1e-E_vs_B-zmax'//z3//z2//z1//'-l'//l3//l2//l1//'.dat';
+archivo = 'prueba.dat'
+open(9, file = archivo)
 !###########################################################
 !###########################################################
 write(9,*) '# Codigo que calculos los autovalores de un electron en un pozo gaussiano.'
@@ -197,8 +207,8 @@ write(9,*) '# lum =', lum
 write(9,*) '# c: parametro en m dist u en [a,c] y e en (c,b]'
 write(9,*) '# c =', c
 
-write(9,*) '# gamma: parametro en exponencial'
-write(9,*) '# gamma =', gamma
+write(9,*) '# beta: parametro en exponencial'
+write(9,*) '# beta =', beta
 
 write(9,*) '# kord: orden de los b-splines'
 write(9,*) '# kord =', kord
@@ -240,7 +250,7 @@ write(9,*) '# autovalores calculados'
 close(9)
 
 
-allocate( Sp(kord), dsp(kord-1))
+allocate( Sp(kord)) !, dsp(kord-1))
 
 allocate( x(l,intg), w(l,intg), pl(l,intg))
 
@@ -250,7 +260,12 @@ allocate( norma(nb), s(nb,nb), v01(nb,nb), ke(nb,nb))
 
 delta = (B_f-B_i)/dble(numero_puntos_B)
 
-call KNOTS_PESOS(kord, tip, gamma, zmin, zmax, c, l, lum, intg, t, k, x, w, pl)
+call  KNOTS_PESOS( kord, tip, beta, zmin, zmax, c, l, lum, intg, t, k, x, w, pl)
+
+!do i = 1, nk
+!    write(23,*) t(i), k(i)
+!end do
+!stop
 
 VB = 0.d0;
 do ind = 0, numero_puntos_B
@@ -273,11 +288,11 @@ do ind = 0, numero_puntos_B
     end do
   end do
 
-  call init_e( )
+  call sener(archivo)
 
 end do
 
-deallocate(Sp, dsp, x, w, pl)
+deallocate(Sp, x, w, pl)
 deallocate(t, k, norma, s, v01, ke)
 
 call cpu_time(time)
@@ -347,37 +362,37 @@ end subroutine matrix_elements
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-subroutine init_e( )
-use matrices
-use integracion
-use carga
-implicit none
-integer(4) :: m,n
-real(8) :: nor
-
-do m = 1, nb
-   do n = m+1, nb
-      nor = dsqrt(s(m,m)*s(n,n))
-      s(m,n) = s(m,n)/nor ; s(n,m) = s(m,n)
-      ke(m,n) = ke(m,n)/nor ; ke(n,m) = ke(m,n)
-      v01(m,n) = v01(m,n)/nor ; v01(n,m) = v01(m,n)
-   end do
-
-  ke(m,m) = ke(m,m)/s(m,m)
-  v01(m,m) = v01(m,m)/s(m,m)
-end do
-
-!!!
-do m = 1, nb
-   norma(m) = dsqrt(s(m,m))
-   s(m,m) = 1.d0
-end do
-
-call sener( )
-
-return
-
-end subroutine init_e
+! subroutine init_e( )
+! use matrices
+! use integracion
+! use carga
+! implicit none
+! integer(4) :: m,n
+! real(8) :: nor
+! 
+! do m = 1, nb
+!    do n = m+1, nb
+!       nor = dsqrt(s(m,m)*s(n,n))
+!       s(m,n) = s(m,n)/nor ; s(n,m) = s(m,n)
+!       ke(m,n) = ke(m,n)/nor ; ke(n,m) = ke(m,n)
+!       v01(m,n) = v01(m,n)/nor ; v01(n,m) = v01(m,n)
+!    end do
+! 
+!   ke(m,m) = ke(m,m)/s(m,m)
+!   v01(m,m) = v01(m,m)/s(m,m)
+! end do
+! 
+! !!!
+! do m = 1, nb
+!    norma(m) = dsqrt(s(m,m))
+!    s(m,m) = 1.d0
+! end do
+! 
+! call sener( )
+! 
+! return
+! 
+! end subroutine init_e
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -388,7 +403,7 @@ end subroutine init_e
 
 ! Calcula E_i de una matriz que se le pasa por mudule
 
-subroutine sener( )
+subroutine sener(archivo)
 use carga
 use matrices
 use integracion
@@ -399,7 +414,7 @@ real(8), parameter :: eV = 27.21138564d0
 real(8), allocatable, dimension(:,:) :: auvec
 real(8), allocatable, dimension(:) :: v, e
 real(8), allocatable, dimension(:,:) :: mh,ms
-! real(8) :: ground_state
+character(150) :: archivo
 
 dp = nb
 
@@ -408,7 +423,7 @@ allocate( e(nev), v(nev), auvec(dp,nev), mh(dp,dp), ms(dp,dp))
 !###########################################################
 !###########################################################
 !###########################################################
-open(31,file = './resultados/auval_e_V0='//cV03//cV02//cV01//'meV-sigma20nm.dat', position = 'append')
+open(31, file = archivo, position = 'append')
 !###########################################################
 !###########################################################
 !###########################################################
@@ -425,7 +440,7 @@ ms = s;
 
 call eigen_value( dp, nev, info, mh, ms, e, auvec)
 
-e(:) = eV*e(:) !+ 2.d0*ground_state(0, B);
+e(:) = eV*e(:);
 
 !!!!!!!!!!!!!!!!!!!!!!!####################################
 !!!!!!!!!!!!!!!!!!!!!!!####################################
@@ -620,7 +635,7 @@ avec(1:dp,1:nev)=z(1:dp,1:nev)
       DIMENSION biatx(jhigh),t(left+jhigh),deltal(jmax),deltar(jmax)
       SAVE deltal,deltar
       DATA j/1/
-!      write(6,*) ' jmax=',jmax
+
       GO TO (10,20),index
  10   j = 1
       biatx(1) = 1.d0
@@ -630,15 +645,8 @@ avec(1:dp,1:nev)=z(1:dp,1:nev)
          jp1 = j + 1
          deltar(j) = t(left+j) - x
          deltal(j) = x - t(left+1-j)
-!         write(6,'(1pd12.4,2(i5,1pd14.6))')
-!     :   x,left+j,t(left+j),left+1-j,t(left+1-j)
-!         write(6,'(i3,1p3d12.4)') j,deltal(j),deltar(j),
-!     :   abs(deltal(j)-deltar(j))
          saved = 0.d0
          DO i = 1,j
-!         write(6,'(2i3,1p3d12.4)') i,j,deltal(jp1-1),deltar(i),
-!     :   abs(deltal(jp1-1)-deltar(i))
-
              term = biatx(i)/(deltar(i) + deltal(jp1-i))
              biatx(i) = saved + deltar(i)*term
              saved = deltal(jp1-i)*term
@@ -653,7 +661,7 @@ avec(1:dp,1:nev)=z(1:dp,1:nev)
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-SUBROUTINE KNOTS_PESOS(kord,tip,gamma,a,b,c,l,lum,intg,t,k,x,w,pl)
+SUBROUTINE KNOTS_PESOS(kord,tip,beta,a,b,c,l,lum,intg,t,k,x,w,pl)
 
 !lo único que hace esta subrutina principal es dividir los casos segun se quiera knots uniformes, exponencial, mixto
 !cada una de las subrutinas que llama ademas calcula los x y los w, abscisas y pesos para la cuadratura gaussiana, y los polinomios
@@ -662,7 +670,7 @@ SUBROUTINE KNOTS_PESOS(kord,tip,gamma,a,b,c,l,lum,intg,t,k,x,w,pl)
 !  INPUT:
 ! kord: orden de los b-splines
 ! tip; character(1): 'u' ; 'e' ; 'm': dist uniforme, exp o mixta de knots
-! gamma : param dist. e (no usado si tip='u')
+! beta : param dist. e (no usado si tip='u')
 ! a
 ! b  ; a<b todo es calculado en el intervalo [a,b]
 ! c solo usado si tip='m' => a<c<b ; dist u  en [a,c]; e en (c,b]; c es a u-knot
@@ -683,7 +691,7 @@ SUBROUTINE KNOTS_PESOS(kord,tip,gamma,a,b,c,l,lum,intg,t,k,x,w,pl)
 implicit none
 integer(4)::kord,l,lum,intg
 character(1)::tip
-real(8)::gamma,a,b,c
+real(8)::beta,a,b,c
 integer(4),dimension(l+2*kord-1)::k
 real(8),dimension(l+2*kord-1)::t
 real(8),dimension(l,intg)::x,w,pl
@@ -693,9 +701,9 @@ real(8),dimension(l,intg)::x,w,pl
 if(tip=='u')then
 call dist_unif(kord,a,b,l,intg,t,k,x,w,pl)
 elseif(tip=='e')then
-call dist_exp(kord,gamma,a,b,l,intg,t,k,x,w,pl)
+call dist_exp(kord,beta,a,b,l,intg,t,k,x,w,pl)
 elseif(tip=='m')then
-call dist_mix(kord,gamma,a,b,c,l,lum,intg,t,k,x,w,pl)
+call dist_mix(kord,beta,a,b,c,l,lum,intg,t,k,x,w,pl)
 else
 write(*,*)'error 1 en KNOTS_PESOS :',tip,' no corresponde a una distribucion'
 stop
@@ -769,71 +777,66 @@ end    SUBROUTINE DIST_UNIF
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-SUBROUTINE DIST_EXP(kord,gamma,a,b,l,intg,t,k,x,w,pl)
-
+SUBROUTINE DIST_EXP(kord, beta, a, b, l, intg, t, k, x, w, pl)
 implicit none
-integer(4)::kord,l,intg
-real(8)::gamma,a,b
-integer(4),dimension(l+2*kord-1)::k
-real(8),dimension(l+2*kord-1)::t
-real(8),dimension(l,intg)::x,w,pl
+integer(4) :: kord,l,intg
+real(8) :: beta,a,b
+integer(4), dimension(l+2*kord-1) :: k
+real(8), dimension(l+2*kord-1) :: t
+real(8), dimension(l,intg) :: x,w,pl
 !!!!!!
-integer(4)::i,j,nk
-real(8)::ri,rf,dr,ye
-real(8),dimension(intg)::vx,vw,vpl
+integer(4) :: i, nk
+real(8) :: ri, dr, length
+real(8), dimension(intg) :: vx,vw,vpl
 
 nk=l+2*kord-1   ! # de knots
 
-dr=(b-a)/(dexp(gamma)-1.d0)
-ye=gamma/dfloat(l)
+dr = (b-a)/real(l, kind(0.d0));
 
 ! calcula los puntos y pesos para la cuadratura
-x=0.d0;w=0.d0
+x = 0.d0; w = 0.d0;
 
-do i=1,l
+length = (b-a)/(sign(1.d0,b)*exp(beta*abs(b))-sign(1.d0,a)*exp(beta*abs(a)));
 
-   ri=a+dr*(dexp(ye*dfloat(i-1))-1.d0)
-   rf=a+dr*(dexp(ye*dfloat(i))-1.d0)
+t(1) = a
+k(1) = 1
 
-   call gauleg_pl(ri,rf,vx,vw,vpl,intg)
-
-   do j=1,intg
-      x(i,j)=vx(j)
-      w(i,j)=vw(j)
-      pl(i,j)=vpl(j)
-   end do
-
+do i = 2, kord
+  t(i) = t(1)
+  k(i) = 1
 end do
 
-t(1)=a
-k(1)=1
-
-do i=2,kord
-   t(i)=t(1)
-   k(i)=1
+do i = kord+1 , kord+l
+  ri = (i-kord)*dr + a;
+  t(i) = length*sign(1.d0, ri)*exp(beta*abs(ri))
+  k(i) = k(i-1)+1
 end do
 
-do i=kord+1,kord+l
-   t(i)=a+dr*(dexp(ye*dfloat(k(i-1)))-1.d0)
-   k(i)=k(i-1)+1
+do i = kord+l+1, nk
+  t(i)=t(i-1)
+  k(i)=k(i-1)
 end do
 
-do i=kord+l+1,nk
-t(i)=t(i-1)
-k(i)=k(i-1)
+call gauleg_pl(-1.d0, 1.d0, vx, vw, vpl, intg);
+
+do i = 1, l
+  x(i, :) = 0.5d0*(t(i+kord)-t(i+kord-1))*vx(:) + 0.5d0*(t(i+kord)+t(i+kord-1))
+  w(i, :) = 0.5d0*(t(i+kord)-t(i+kord-1))*vw(:);
 end do
+
+pl = 0.d0;
 
 return
-end    SUBROUTINE DIST_EXP
+end SUBROUTINE DIST_EXP
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-SUBROUTINE DIST_MIX(kord,gamma,a,b,c,l,lum,intg,t,k,x,w,pl)
+SUBROUTINE DIST_MIX(kord,beta,a,b,c,l,lum,intg,t,k,x,w,pl)
 implicit none
 integer(4)::kord,l,lum,intg
-real(8)::gamma,a,b,c
+real(8)::beta,a,b,c
 integer(4),dimension(l+2*kord-1)::k
 real(8),dimension(l+2*kord-1)::t
 real(8),dimension(l,intg)::x,w,pl
@@ -852,7 +855,7 @@ call DIST_UNIF(kord,a,c,lum,intg,tu,ku,xu,wu,plu)
 
 le=l-lum
 
-call DIST_EXP(kord,gamma,c,b,le,intg,te,ke,xe,we,ple)
+call DIST_EXP(kord,beta,c,b,le,intg,te,ke,xe,we,ple)
 
 do i=1,lum
 x(i,1:intg)=xu(i,1:intg)

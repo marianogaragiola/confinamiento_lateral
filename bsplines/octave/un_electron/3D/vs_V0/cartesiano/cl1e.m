@@ -7,7 +7,7 @@ tic();
 a0 = 0.0529177210; eV = 27.21138564;
 
 %% Parametros fisicos del problema
-sigma   = 20; % en nm
+sigma   = 10; % en nm
 me      = 0.063; % masa efectiva del electron
 
 V0_vec = linspace(0, 0.03, 10);
@@ -25,7 +25,7 @@ xMin             = -150; % extremo inferior del intervalo
 N_cuad           = 100;
 N_base = num_intervalos + kord - 1;
 
-name = sprintf('./resultados/1e-E_vs_V0.dat');
+name = sprintf('./resultados/1e-E_vs_V0-sigma%2.0fnm.dat', sigma);
 
 file = fopen(name, 'w');
 fprintf(file, '# Num_interavaos = %i \n', num_intervalos)
@@ -55,6 +55,7 @@ knots = (xMax - xMin)*knots + xMin; % knots estaba en [0, 1]
 zeta = (xMax - xMin)*zeta + xMin;   % zeta estaba en [0, 1]
 
 x = 0.5*(xMax - xMin)*x + 0.5*(xMax + xMin); % x estaba en [-1, 1]
+w = 0.5*(xMax - xMin)*w;
 
 %% calculo los bsplines en el vector x
 bs = bspeval(kord-1, c, knots, x);
@@ -74,7 +75,8 @@ Vx = Vx(2:N_base-1,2:N_base-1);
 Sx = Sx(2:N_base-1,2:N_base-1);
 
 T = kron(Tx, kron(Sx, Sx)) + kron(Sx, kron(Tx, Sx)) + kron(Sx, kron(Sx, Tx));
-V = kron(Vx, kron(Sx, Sx)) + kron(Sx, kron(Vx, Sx)) + kron(Sx, kron(Sx, Vx));
+% V = kron(Vx, kron(Sx, Sx)) + kron(Sx, kron(Vx, Sx)) + kron(Sx, kron(Sx, Vx));
+V = kron(Vx, kron(Vx, Vx));
 S = kron(Sx, kron(Sx, Sx));
 
 N_dim = (N_base-2)**3;
@@ -87,18 +89,21 @@ for V0 = V0_vec
   %% Armo el hamitoniano
   H = zeros(N_dim);
   H = T(:,:) - V0*V(:,:);
+  H = 0.5*(H + transpose(H));
+  return
 
-  [auvec, e] = eigs(H, S, N_dim);
+  [auvec, e] = eig(H, S);
+
   [e, perm] = sort(diag(e));
   e = eV*e;
 
-  auval = [eV*V0, e'];
+  % auval = [eV*V0, e'];
 
-  auvec = auvec(:, perm);
+  % auvec = auvec(:, perm);
 
-  estados = [estados; eV*V0, e(1), e(2), e(3), e(4), e(5), e(6)];
+  % estados = [estados; eV*V0, e(1), e(2), e(3), e(4), e(5), e(6)];
 
-  save('-ascii', '-append', name, 'auval')
+  % save('-ascii', '-append', name, 'auval')
 
   % %% Ahora voy a graficar los autoestados
   % c = zeros(N_base);
@@ -114,18 +119,18 @@ for V0 = V0_vec
   % save('-ascii', 'autovectores.dat', 'autovectores')
 end
 
-f = figure('visible', 'on'); hold on;
-set(gca, 'linewidth', 2, 'fontsize', 20); % grosor de la lineas de los ejes y el tamaño de la letra
-set(gca,'ticklength', 2.5*get(gca,'ticklength')) %largo de los ticksmarks
-xlabel('V0 [eV]','fontsize',20);
-ylabel('E [eV]')
-
-plot(estados(:,1), estados(:,2), '-', 'LineWidth', 3,...
-    estados(:,1), estados(:,3), '-', 'LineWidth', 3,...
-    estados(:,1), estados(:,4), '-', 'LineWidth', 3,...
-    estados(:,1), estados(:,5), '-', 'LineWidth', 3,...
-    estados(:,1), estados(:,6), '-', 'LineWidth', 3)
-
-print -depsc -color 1e-E_vs_V0.eps
+% f = figure('visible', 'on'); hold on;
+% set(gca, 'linewidth', 2, 'fontsize', 20); % grosor de la lineas de los ejes y el tamaño de la letra
+% set(gca,'ticklength', 2.5*get(gca,'ticklength')) %largo de los ticksmarks
+% xlabel('V0 [eV]','fontsize',20);
+% ylabel('E [eV]')
+%
+% plot(estados(:,1), estados(:,2), '-', 'LineWidth', 3,...
+%     estados(:,1), estados(:,3), '-', 'LineWidth', 3,...
+%     estados(:,1), estados(:,4), '-', 'LineWidth', 3,...
+%     estados(:,1), estados(:,5), '-', 'LineWidth', 3,...
+%     estados(:,1), estados(:,6), '-', 'LineWidth', 3)
+%
+% print -depsc -color 1e-E_vs_V0.eps
 
 elapsed_time = toc()
