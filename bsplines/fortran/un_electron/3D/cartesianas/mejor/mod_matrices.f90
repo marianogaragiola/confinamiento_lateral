@@ -9,43 +9,45 @@ subroutine hamiltoniano(nb, v0, s, v, ke, h, ms)
   real(pr), intent(out) :: h(nb**3,nb**3), ms(nb**3,nb**3)
   !!!!
   real(pr) :: aux1(nb**2,nb**2), aux2(nb**3,nb**3)
-  real(pr) :: T_cinetica(nb**3,nb**3), U_potencial(nb**3,nb**3) !, S_copy(nb**3,nb**3)
+  real(pr) :: T_cinetica(nb**3,nb**3), U_potencial(nb**3,nb**3)
 
-  aux1 = 0.d0; aux2 = 0.d0;
-  T_cinetica = 0.d0;
+  aux1 = 0._pr; aux2 = 0._pr;
+  T_cinetica = 0._pr;
 
   call prod_kron(nb, nb, S, S, aux1);
   call prod_kron(nb, nb*nb, ke, aux1, aux2);
 
   T_cinetica = T_cinetica + aux2;
 
+  aux1 = 0._pr; aux2 = 0._pr;
   call prod_kron(nb, nb, ke, S, aux1);
   call prod_kron(nb, nb*nb, S, aux1, aux2);
 
   T_cinetica = T_cinetica + aux2;
 
+  aux1 = 0._pr; aux2 = 0._pr;
   call prod_kron(nb, nb, S, ke, aux1);
   call prod_kron(nb, nb*nb, S, aux1, aux2);
 
   T_cinetica = T_cinetica + aux2;
 
   !!!!
-  U_potencial = 0.d0;
-  aux1 = 0.d0; aux2 = 0.d0;
+  U_potencial = 0._pr;
+  aux1 = 0._pr; aux2 = 0._pr;
   call prod_kron(nb, nb, v, v, aux1);
   call prod_kron(nb, nb*nb, v, aux1, aux2);
 
   U_potencial = aux2;
 
-  ms = 0.d0;
-  aux1 = 0.d0; aux2 = 0.d0;
+  ms = 0._pr;
+  aux1 = 0._pr; aux2 = 0._pr;
   call prod_kron(nb, nb, S, S, aux1);
   call prod_kron(nb, nb*nb, S, aux1, aux2);
 
   ms = aux2;
 
   h = T_cinetica - v0*U_potencial;
-
+  
 end subroutine hamiltoniano
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -65,7 +67,7 @@ subroutine prod_kron(NA, NB, A, B, kron)
     end do
   end do
 
-end subroutine
+end subroutine prod_kron
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -98,7 +100,7 @@ subroutine calculo_matrices(kord, l_interval, n_cuad, nk, nb, me, sigma, t, k, x
             if( in>0.and.in<nb+1 )then
               s(im,in) = s(im,in) + bsp(m)*bsp(n)*w(k(i),j);
 
-              v(im,in) = v(im,in) + w(k(i),j)*bsp(m)*bsp(n)*(exp(-zz**2/(2._pr*sigma**2)) );
+              v(im,in) = v(im,in) + w(k(i),j)*bsp(m)*bsp(n)*exp(-zz**2/(2._pr*sigma**2));
 
             endif
           end do
@@ -110,7 +112,7 @@ subroutine calculo_matrices(kord, l_interval, n_cuad, nk, nb, me, sigma, t, k, x
   do i = kord, kord+l_interval-1
     do m = i-kord+1, i
       if(m>1.and.m<nb+2)then
-        do n = m,i
+        do n = m, i
           if(n<nb+2)then
             do j = 1, n_cuad
 
@@ -125,6 +127,13 @@ subroutine calculo_matrices(kord, l_interval, n_cuad, nk, nb, me, sigma, t, k, x
     end do
   end do
 
+  do n = 1, nb
+    do m = n, nb
+      s(m,n) = s(n,m);
+      v(m,n) = v(n,m);
+      ke(m,n) = ke(n,m);
+     end do
+   end do
 
 end subroutine calculo_matrices
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!

@@ -88,6 +88,7 @@
 #define NUM_PUNTOS_V0_ 10
 #endif
 !!!!!!!!!!!!!!!!!!!!!!!
+!!!!!!!!!!!!!!!!!!!!!!!
 program main
   use precision, pr => dp
   use cuadratura_knots
@@ -117,9 +118,9 @@ program main
   v0_i = real(V0_I_, pr); v0_f = real(V0_F_, pr);
   num_puntos_V0 = NUM_PUNTOS_V0_;
 
-  nk = l_interval+2*kord-1    ! # de knots
+  nk = l_interval+2*kord-1;    ! # de knots
   ! No incluimos primer   y ultimo spline debido a psi(0)=psi(R)=0
-  nb = kord+l_interval-3      ! tamaño base splines
+  nb = kord+l_interval-3;      ! tamaño base splines
   ndimh = nb**3;
 
   archivo = './resultados/1e-E_vs_V0.dat';
@@ -128,14 +129,16 @@ program main
   write(10,*) "# Tipo de distribucion de knots:", tipo, "(1 es uniforme, 2 es exponencial)"
   write(10,*) "# Cte de decaimiento en distribucion exp beta =", beta
   write(10,*) "# Orden de los bsplines kord =", kord
-  write(10,*) "# Num de intervalos", l_interval, "grado de la cuadratura", n_cuad
+  write(10,*) "# Num de intervalos", l_interval, ", grado de la cuadratura", n_cuad
+  write(10,*) "# Num de knost", nk, ", tamaño de la base nb =", nb
   write(10,*) "# Masa efectiva del electron me =", me, "UA"
   write(10,*) "# Ancho del poso sigma =", sigma, "nm"
   write(10,*) "# Pozo inicial v0_i =", v0_i, "y final v0_f =", v0_f
   write(10,*) "# Autovalores calculados"
+  call flush();
 
   ! Paso a unidades atomicas todo
-  V0_i = V0_i/eV; V0_f = V0_f/eV;
+  v0_i = v0_i/eV; v0_f = v0_f/eV;
   zmin = zmin/a0; zmax = zmax/a0; sigma = sigma/a0;
   beta = beta*a0;
 
@@ -154,6 +157,7 @@ program main
 
   delta_v0 = (v0_f-v0_i)/real(num_puntos_v0, pr);
 
+  ind_v0 = 0;
   do ind_v0 = 0, num_puntos_V0
 
     v0 = v0_i + delta_v0*real(ind_v0, pr);
@@ -161,10 +165,11 @@ program main
     call hamiltoniano(nb, v0, s, v, ke, h, ms);
 
     call eigenvalues(ndimh, nev, h, ms, auval)
+
     auval = eV*auval;
 
     write(10,6) eV*v0, (auval(i), i = 1, nev)
-
+   call flush();
   end do
 
   deallocate(k, t)
@@ -174,5 +179,5 @@ program main
   deallocate(auval)
 
 6 format(e22.14,1x,1000(1x,e22.14))
-
+! 7 format(3000(1x,e22.14))
 end program

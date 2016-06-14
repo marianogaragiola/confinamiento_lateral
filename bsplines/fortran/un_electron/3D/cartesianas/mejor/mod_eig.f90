@@ -12,7 +12,7 @@ subroutine eigenvalues(ndim, nev, h, ms, auval)
   integer :: iwork(5*ndim), ifail(ndim)
   character(1) :: JOBZ, RANGE, UPLO
   real(pr) :: vl, vu, abstol
-  real(pr) :: w(ndim), Z(ndim,ndim), work(8*ndim)
+  real(pr) :: w(ndim), Z(ndim,nev), work(8*ndim)
 
 
   ITYPE = 1; ! esto es A*x = (lambda)*B*x

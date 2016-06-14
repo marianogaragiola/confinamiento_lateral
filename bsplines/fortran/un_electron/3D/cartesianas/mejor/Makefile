@@ -11,7 +11,7 @@ MOD4	= mod_eig
 CXX		= gfortran
 
 # FLAGS
-FLAGS			= -cpp -O3 -Wall -Wextra
+FLAGS			= -cpp -O0 -Wall -Wextra -fcheck=all
 LDFLAGS		= -llapack
 
 # VALUES
@@ -20,24 +20,24 @@ ZMAX_						= 1000.0
 TIPO_						= 2
 BETA_						= 0.0065d0
 KORD_						= 5
-L_INTERVAL_			= 10
-N_CUAD_					= 100
-NEV_						= 30
+L_INTERVAL_			= 15
+N_CUAD_					= 200
+NEV_						= 50
 ME_							= 0.063d0
 SIGMA_					= 15.0d0
 V0_I_						= 0.0d0
-V0_F_						= 0.05d0
-NUM_PUNTOS_V0_	= 10
+V0_F_						= 0.03d0
+NUM_PUNTOS_V0_	= 30
 
 
 # PARAMETER
-PARAMETER	= -DZIM_=$(ZMIN_) -DZMAX_=$(ZMAX_) -DTIPO_=$(TIPO_) -DBETA_=$(BETA_) \
+PARAMETER	= -DZMIN_=$(ZMIN_) -DZMAX_=$(ZMAX_) -DTIPO_=$(TIPO_) -DBETA_=$(BETA_) \
 					  -DKORD_=$(KORD_) -DL_INTERVAL_=$(L_INTERVAL_) -DN_CUAD_=$(N_CUAD_) \
 						-DNEV_=$(NEV_) -DME_=$(ME_) -DSIGMA_=$(SIGMA_) -DV0_I_=$(V0_I_) \
 						-DV0_F_=$(V0_F_) -DNUM_PUNTOS_V0_=$(NUM_PUNTOS_V0_)
 
 $(BIN): clean $(BIN).f90 mods
-	$(CXX) $(FLAGS) -o $(BIN) $(BIN).f90 $(MOD1).o $(MOD2).o $(MOD3).o $(MOD4).o $(LDFLAGS) $(PARAMETER) 
+	$(CXX) $(FLAGS) -o $(BIN) $(BIN).f90 $(MOD1).o $(MOD2).o $(MOD3).o $(MOD4).o $(LDFLAGS) $(PARAMETER)
 
 run: $(BIN)
 	./$(BIN) # > 'salida.dat'
