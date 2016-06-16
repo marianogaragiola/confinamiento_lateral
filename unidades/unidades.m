@@ -23,6 +23,9 @@ beta2 = beta1*erg_to_eV; % eV/G
 
 beta3 = beta2/G_to_T; % eV/T
 
+omega_0 = (qe/(2*me*me_red*c))^2; % (erg)/(cm^2)*G^(-2)
+omega_0 = omega_0*erg_to_eV/(cm_to_nm^2*G_to_T^2);% (eV)/(nm)*T^(-2)
+
 B = linspace(0, 25, 25)';
 
 salida = [B];
