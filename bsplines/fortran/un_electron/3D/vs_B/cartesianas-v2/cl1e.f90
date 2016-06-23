@@ -106,15 +106,14 @@ program main
   real(pr), parameter :: c_light = 137.035999074492_pr !, ua_to_T = 2.350517464e5_pr
   real(pr), parameter :: ua_to_T = 1.72e3_pr
   !!!!!!
-  integer :: i, nk, nb, ndimh, ind_b
+  integer :: i, j, nk, nb, ndimh, ind_b
   integer, allocatable :: k(:)
   real(pr) :: delta_b, b_campo, omega
   real(pr), allocatable :: t(:)
   real(pr), allocatable :: x(:,:), w(:,:), pl(:,:)
-  real(pr), allocatable :: s(:,:), v_pozo(:,:), v_campo(:,:), ke(:,:)
-  real(pr), allocatable :: h(:,:), ms(:,:), auval(:)
+  real(pr), allocatable :: s(:,:), x_mat(:,:), p_mat(:,:), v_pozo(:,:), v_campo(:,:), ke(:,:)
+  complex(pr), allocatable :: h(:,:), ms(:,:), auval(:)
   character(150) :: archivo
-  ! character(200) :: file
 
   zmin = real(ZMIN_, pr); zmax = real(ZMAX_, pr);
   tipo = TIPO_;
@@ -131,21 +130,20 @@ program main
   nb = kord+l_interval-3;      ! tamaño base splines
   ndimh = nb**3;
 
-  ! archivo = './resultados/1e-E_vs_B.dat';
   write(archivo, '("./resultados/1e-E_vs_B-v0_",f6.4,"eV.dat")') v0
 
   open(10, file = archivo)
-  write(10,*) "# Intervalo de integracion:", zmin, zmax, "nm"
-  write(10,*) "# Tipo de distribucion de knots:", tipo, "(1 es uniforme, 2 es exponencial)"
-  write(10,*) "# Cte de decaimiento en distribucion exp beta =", beta
-  write(10,*) "# Orden de los bsplines kord =", kord
-  write(10,*) "# Num de intervalos", l_interval, ", grado de la cuadratura", n_cuad
-  write(10,*) "# Num de knost", nk, ", tamaño de la base nb =", nb
-  write(10,*) "# Masa efectiva del electron me =", me, "UA"
-  write(10,*) "# Ancho del pozo sigma =", sigma, "nm"
-  write(10,*) "# Profundidad del pozo V0 =", v0
-  write(10,*) "# Campo inicial b_campo_i =", b_campo_i, "y final b_campo_f =", b_campo_f
-  write(10,*) "# Autovalores calculados"
+  write(10,'(A28,f8.2,A1,f8.2,A4)') "# Intervalo de integracion:[", zmin,",", zmax, "] nm"
+  write(10,'(A32,x,I2,x,A33)') "# Tipo de distribucion de knots:", tipo, "(1 es uniforme, 2 es exponencial)"
+  write(10,'(A47,x,f8.6)') "# Cte de decaimiento en distribucion exp beta =", beta
+  write(10,'(A30,x,I2)') "# Orden de los bsplines kord =", kord
+  write(10,'(A19,x,I3,x,A24,x,I3)') "# Num de intervalos", l_interval, ", grado de la cuadratura", n_cuad
+  write(10,'(A14,x,I3,x,A24,x,I3)') "# Num de knost", nk, ", tamaño de la base nb =", nb
+  write(10,'(A33,x,f8.6,x,A2)') "# Masa efectiva del electron me =", me, "UA"
+  write(10,'(A24,x,f5.2,x,A2)') "# Ancho del pozo sigma =", sigma, "nm"
+  write(10,'(A27,x,f6.4,x,A2)') "# Profundidad del pozo V0 =", v0, "eV"
+  write(10,'(A27,x,f6.2,x,A19,x,f7.2)') "# Campo inicial b_campo_i =", b_campo_i, "y final b_campo_f =", b_campo_f
+  write(10,'(A24)') "# Autovalores calculados"
   call flush();
 
   ! Paso a unidades atomicas todo
@@ -155,7 +153,7 @@ program main
 
   allocate(k(nk), t(nk))
   allocate(x(l_interval,n_cuad), w(l_interval,n_cuad), pl(l_interval,n_cuad))
-  allocate(s(nb,nb), v_pozo(nb,nb), v_campo(nb,nb), ke(nb,nb))
+  allocate(s(nb,nb), x_mat(nb,nb), p_mat(nb,nb), v_pozo(nb,nb), v_campo(nb,nb), ke(nb,nb))
   allocate(h(ndimh,ndimh), ms(ndimh,ndimh))
   allocate(auval(nev))
 
@@ -164,30 +162,31 @@ program main
 
   !! ahora paso a calcular las matrices del problema
   s(:,:) = 0._pr; v_pozo(:,:) = 0._pr; v_campo(:,:) = 0._pr; ke(:,:) = 0._pr;
-  call calculo_matrices(kord, l_interval, n_cuad, nk, nb, me, sigma, t, k, x, w, s, v_pozo, v_campo, ke);
+  call calculo_matrices(kord, l_interval, n_cuad, nk, nb, me, sigma, t, k, x, w, s, x_mat, p_mat, v_pozo, v_campo, ke);
 
   delta_b = (b_campo_f-b_campo_i)/real(num_puntos_B, pr);
 
   ind_B = 0;
-  do ind_B = 0, num_puntos_B
+!   do ind_B = 0, num_puntos_B
 
     b_campo = b_campo_i + delta_b*real(ind_B, pr);
 
     omega = 0.5_pr*b_campo/(me*c_light*ua_to_T); ! asi esta en unidades atomicas
 
-    call hamiltoniano(nb, v0, me, omega, s, v_pozo, v_campo, ke, h, ms);
+    call hamiltoniano(nb, v0, me, omega, s, x_mat, p_mat, v_pozo, v_campo, ke, h, ms);
 
     call eigenvalues(ndimh, nev, h, ms, auval)
 
     auval = eV*auval;
 
-    write(10,6) b_campo, (auval(i), i = 1, nev)
+    write(*,*) b_campo, real(auval(1)), aimag(auval(1))
+!     write(10,6) b_campo, (auval(i), i = 1, nev)
     call flush();
-  end do
+!   end do
 
   deallocate(k, t)
   deallocate(x, w, pl)
-  deallocate(s, v_pozo, v_campo, ke)
+  deallocate(s, x_mat, p_mat, v_pozo, v_campo, ke)
   deallocate(h, ms)
   deallocate(auval)
 

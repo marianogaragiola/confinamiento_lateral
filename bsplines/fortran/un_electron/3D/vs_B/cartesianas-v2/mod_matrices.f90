@@ -1,16 +1,19 @@
 module matrices
 contains
-subroutine hamiltoniano(nb, v0, me, omega, s, v_pozo, v_campo, ke, h, ms)
+subroutine hamiltoniano(nb, v0, me, omega, s, x_mat, p_mat, v_pozo, v_campo, ke, h, ms)
   use precision, pr => dp
   implicit none
   integer, intent(in) :: nb
   real(pr), intent(in) :: v0, me, omega
-  real(pr), intent(in) :: s(nb,nb), v_pozo(nb,nb), v_campo(nb,nb), ke(nb,nb)
-  real(pr), intent(out) :: h(nb**3,nb**3), ms(nb**3,nb**3)
+  real(pr), intent(in) :: s(nb,nb), x_mat(nb,nb), p_mat(nb,nb), v_pozo(nb,nb), v_campo(nb,nb), ke(nb,nb)
+  complex(pr), intent(out) :: h(nb**3,nb**3), ms(nb**3,nb**3)
   !!!!
+  integer :: i, j
+  real(pr) :: Lz(nb**3,nb**3)
   real(pr) :: aux1(nb**2,nb**2), aux2(nb**3,nb**3)
   real(pr) :: T_cinetica(nb**3,nb**3), U_pozo(nb**3,nb**3), U_campo(nb**3,nb**3)
 
+  !!!! Primero la energia cinetica
   aux1 = 0._pr; aux2 = 0._pr;
   T_cinetica = 0._pr;
 
@@ -31,7 +34,7 @@ subroutine hamiltoniano(nb, v0, me, omega, s, v_pozo, v_campo, ke, h, ms)
 
   T_cinetica = T_cinetica + aux2;
 
-  !!!!
+  !!!! Segundo la energia potencial del pozo de potencial
   U_pozo = 0._pr;
   aux1 = 0._pr; aux2 = 0._pr;
   call prod_kron(nb, nb, v_pozo, v_pozo, aux1);
@@ -39,7 +42,7 @@ subroutine hamiltoniano(nb, v0, me, omega, s, v_pozo, v_campo, ke, h, ms)
 
   U_pozo = aux2;
 
-  !!!!
+  !!!! Tercero la energia potencial del campo magnetico
   U_campo = 0._pr;
   aux1 = 0._pr; aux2 = 0._pr;
   call prod_kron(nb, nb, s, s, aux1);
@@ -53,15 +56,31 @@ subroutine hamiltoniano(nb, v0, me, omega, s, v_pozo, v_campo, ke, h, ms)
 
   U_campo = U_campo + aux2;
 
-  !!!!
+  !!!! Cuarto la energia del termino de momento angular
+  Lz = 0._pr;
+  aux1 = 0._pr; aux2 = 0._pr;
+  call prod_kron(nb, nb, p_mat, s, aux1);
+  call prod_kron(nb, nb*nb, x_mat, aux1, aux2);
+
+  Lz = Lz + aux2;
+
+  aux1 = 0._pr; aux2 = 0._pr;
+  call prod_kron(nb, nb, x_mat, s, aux1);
+  call prod_kron(nb, nb*nb, p_mat, aux1, aux2);
+
+  Lz = Lz - aux2;
+
+  Lz = -omega*Lz;
+
+  !!!! Por ultimo la matriz de solapamiento
   ms = 0._pr;
   aux1 = 0._pr; aux2 = 0._pr;
   call prod_kron(nb, nb, S, S, aux1);
   call prod_kron(nb, nb*nb, S, aux1, aux2);
 
-  ms = aux2;
+  ms = dcmplx(aux2, 0._pr);
 
-  h = T_cinetica - v0*U_pozo+ me*omega**2*U_campo;
+  h = dcmplx(T_cinetica - v0*U_pozo+ me*omega**2*U_campo, -Lz);
 
 end subroutine hamiltoniano
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -86,7 +105,7 @@ end subroutine prod_kron
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-subroutine calculo_matrices(kord, l_interval, n_cuad, nk, nb, me, sigma, t, k, x, w, s, v_pozo, v_campo, ke)
+subroutine calculo_matrices(kord, l_interval, n_cuad, nk, nb, me, sigma, t, k, x, w, s, x_mat, p_mat, v_pozo, v_campo, ke)
   use precision, pr => dp
   implicit none
   integer, intent(in) :: kord, l_interval, n_cuad, nk, nb

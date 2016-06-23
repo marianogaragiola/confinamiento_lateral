@@ -20,13 +20,13 @@ ZMAX_						= 1000.0
 TIPO_						= 2
 BETA_						= 0.0065d0
 KORD_						= 5
-L_INTERVAL_			= 15
+L_INTERVAL_			= 12
 N_CUAD_					= 200
 NEV_						= 60
 ME_							= 0.063d0
 SIGMA_					= 15.0d0
 V0_							= 0.001d0
-B_CAMPO_I_			= 0.0d0
+B_CAMPO_I_			= 1.d0
 B_CAMPO_F_			= 100.0d0
 NUM_PUNTOS_B_		= 100
 

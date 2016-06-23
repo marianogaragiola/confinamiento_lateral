@@ -1,41 +1,57 @@
 module mod_eig
 contains
-subroutine eigenvalues(ndim, nev, h, ms, auval)
+subroutine eigenvalues(ndim, nev, A, B, auval)
   use precision, pr => dp
   implicit none
   integer, intent(in) :: ndim, nev
-  real(pr), intent(in) :: h(ndim,ndim), ms(ndim,ndim)
-  real(pr), intent(out) :: auval(nev)
-  !!!!!
-  integer :: ITYPE, INFO, N, LDA, LDB, m, ldz
-  integer :: lwork, IL, IU
-  integer :: iwork(5*ndim), ifail(ndim)
-  character(1) :: JOBZ, RANGE, UPLO
-  real(pr) :: vl, vu, abstol
-  real(pr) :: w(ndim), Z(ndim,nev), work(8*ndim)
+  complex(pr), intent(in) :: A(ndim,ndim), B(ndim,ndim)
+  complex(pr), intent(out) :: auval(nev)
+  !!!
+  integer :: j, jmin(1), jmax(1)
+  character(1) :: JOBVL, JOBVR
+  integer :: LDA, LDB, LDVL, LDVR, LWORK, INFO
+  complex(pr) :: ALPHA(ndim), BETA(ndim)
+  complex(pr) :: VL(ndim,ndim), VR(ndim,ndim)
+  complex(pr) :: WORK(2*ndim)
+  real(pr) :: RWORK(8*ndim)
+  complex(pr) :: auval_vec(ndim), caux(ndim)
+  real(pr) :: vec_aux(ndim), raux(ndim)
 
 
-  ITYPE = 1; ! esto es A*x = (lambda)*B*x
-  JOBZ = 'N'; ! solo autovalores
-  RANGE = 'I';
-  UPLO = 'U';
-  N = ndim; LDA = ndim; LDB = ndim;
-  IL = 1; IU = nev;
-  abstol = 1.d-12;
-  m = nev;
-  ldz = ndim;
-  lwork = 8*ndim;
+  JOBVL = 'N'; JOBVR = 'N';
+  LDA = ndim; LDB = ndim; LDVL = ndim; LDVR = ndim;
+  LWORK = 2*ndim;
 
-  call dsygvx(ITYPE, JOBZ, RANGE, UPLO, N, h, LDA, ms, LDB, &
-              &vl, vu, il, iu, abstol, m, w, &
-              &z, ldz, work, lwork, iwork, ifail, info);
+  call zggev(JOBVL, JOBVR, ndim, A, LDA, B, LDB, ALPHA, BETA, VL, LDVL, VR, LDVR, WORK, LWORK, RWORK, INFO)
 
-  if(0.ne.info) then
-    write(*,*) " Problemas en dsygvx, info =", info
-    stop
-  end if
+  ! write(*,*) INFO, real(WORK(1))
+  ! stop
+  !if(INFO .NE. 0)then
+  !  write(*,*) INFO
+  !  stop
+  !end if
 
-  auval(1:nev) = w(1:nev);
+  do j = 1, ndim
+    auval_vec(j) = ALPHA(j)/BETA(j);
+    !write(13,*) ALPHA(j), BETA(j)
+    vec_aux(j) = real(auval(j));
+  end do
+  !stop
+
+  jmax = maxloc(vec_aux);
+  do j = 1, ndim
+    jmin = minloc(vec_aux);
+    raux(j) = vec_aux(jmin(1));
+    caux(j) = auval_vec(jmin(1));
+    vec_aux(jmin(1)) = 2.d0*vec_aux(jmax(1)) + 1.d0;
+    auval_vec(jmin(1)) = 2.d0*auval_vec(jmax(1)) + DCMPLX(1.d0, 0.d0);
+  end do
+  vec_aux = raux;
+  auval_vec = caux;
+
+  do j = 1, nev
+    auval(j) = auval_vec(j);
+  end do
 
 end subroutine eigenvalues
 end module mod_eig
