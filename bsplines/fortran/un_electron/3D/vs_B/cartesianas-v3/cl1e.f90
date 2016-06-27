@@ -112,8 +112,8 @@ program main
   real(pr), allocatable :: t(:)
   real(pr), allocatable :: x(:,:), w(:,:), pl(:,:)
   real(pr), allocatable :: s(:,:), x_mat(:,:), p_mat(:,:), v_pozo(:,:), v_campo(:,:), ke(:,:)
-  complex(pr), allocatable :: h(:,:), ms(:,:), auval(:)
-  character(150) :: archivo1, archivo2
+  real(pr), allocatable :: h(:,:), ms(:,:), auval(:)
+  character(150) :: archivo1
 
   zmin = real(ZMIN_, pr); zmax = real(ZMAX_, pr);
   tipo = TIPO_;
@@ -128,13 +128,11 @@ program main
   nk = l_interval+2*kord-1;    ! # de knots
   ! No incluimos primer   y ultimo spline debido a psi(0)=psi(R)=0
   nb = kord+l_interval-3;      ! tamaño base splines
-  ndimh = nb**3;
+  ndimh = 2*nb**3;
 
-  write(archivo1, '("./resultados/1e-E_vs_B-v0_",f6.4,"eV-real.dat")') v0
-  write(archivo2, '("./resultados/1e-E_vs_B-v0_",f6.4,"eV-imag.dat")') v0
+  write(archivo1, '("./resultados/1e-E_vs_B-v0_",f6.4,"eV.dat")') v0
 
   open(10, file = archivo1)
-  open(11, file = archivo2)
   write(10,'(A28,f8.2,A1,f8.2,A4)') "# Intervalo de integracion:[", zmin,",", zmax, "] nm"
   write(10,'(A32,x,I2,x,A33)') "# Tipo de distribucion de knots:", tipo, "(1 es uniforme, 2 es exponencial)"
   write(10,'(A47,x,f8.6)') "# Cte de decaimiento en distribucion exp beta =", beta
@@ -181,9 +179,7 @@ program main
 
     auval = eV*auval;
 
-!    write(*,*) b_campo, real(auval(1)), aimag(auval(1))
-    write(10,6) b_campo, (real(auval(i)), i = 1, nev)
-    write(11,6) b_campo, (aimag(auval(i)), i = 1, nev)
+    write(10,6) b_campo, (auval(i), i = 1, nev)
     call flush();
   end do
 

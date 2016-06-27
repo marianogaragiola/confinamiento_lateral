@@ -34,7 +34,7 @@ subroutine eigenvalues(ndim, nev, A, B, auval)
   do j = 1, ndim
     auval_vec(j) = ALPHA(j)/BETA(j);
     !write(13,*) ALPHA(j), BETA(j)
-    vec_aux(j) = real(auval(j));
+    vec_aux(j) = real(auval_vec(j));
   end do
   !stop
 
@@ -44,7 +44,7 @@ subroutine eigenvalues(ndim, nev, A, B, auval)
     raux(j) = vec_aux(jmin(1));
     caux(j) = auval_vec(jmin(1));
     vec_aux(jmin(1)) = 2.d0*vec_aux(jmax(1)) + 1.d0;
-    auval_vec(jmin(1)) = 2.d0*auval_vec(jmax(1)) + DCMPLX(1.d0, 0.d0);
+    auval_vec(jmin(1)) = 2.d0*auval_vec(jmax(1)) + DCMPLX(100.d0, 0.d0);
   end do
   vec_aux = raux;
   auval_vec = caux;
