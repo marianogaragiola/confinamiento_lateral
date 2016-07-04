@@ -63,28 +63,28 @@ a0 = 0.0529177210; eV = 27.21138564; c_light = 137.035999074492; ua_to_T = 1.72e
 me = 0.063; ## Masa de la particula
 mz = 0.0; ## Componente z del momento angular
 sigma = 15.0; ## Ancho del pozo gaussiano en nm
-v0 = 0.0; ## Profundidad del pozo en eV
+v0 = 0.001; ## Intensidad de campo magnetico en teslas
 
-bcampo_vec = np.linspace(0, 100, 100);
+bcampo_vec = np.linspace(0.0, 100.0, 100);
 
 ## Separo las coordenadas y tomo distinta base en r y en z
 Rmin = 0.0;
-Rmax = 100.0;
+Rmax = 1000.0;
 
-Zmax = 100.0;
+Zmax = 1000.0;
 Zmin = -Zmax;
 
 N_intervalos_r = 30; N_intervalos_z = 30;
 N_cuad = 100;
 grado = 4;
 kord = grado + 1;
-beta = 0.01;
+beta = 0.0065; ## Cte de decaimiento para los knots en la distribucion exponencial
 N_splines_r = N_intervalos_r + grado; N_splines_z = N_intervalos_z + grado;
 N_base_r = N_splines_r - 1; N_base_z = N_splines_z - 2;
 
 N_dim = N_base_r*N_base_z; # Tamano de las matrices
 
-archivo = "./resultados/1e-E_vs_B-v0%e-mz%d.dat" % (v0, mz)
+archivo = "./resultados/1e-E_vs_B-v0_%6.4feV-mz_%d.dat" % (v0, mz)
 
 f = open(archivo, 'w')
 f.write("# Intervalo de integracion en r [{0}, {1}]\n".format(Rmin, Rmax))
@@ -98,13 +98,13 @@ f.write("# Orden de la cuadratura N_cuad = {0}\n".format(N_cuad))
 f.write("# Masa de la particula me = {0} en UA\n".format(me))
 f.write("# Componente z del momento angular mz = {0}\n".format(mz))
 f.write("# Ancho del pozo gaussiano sigma = {0} en nm\n".format(sigma))
-f.write("# Profundidad del pozo = {0} en T\n".format(v0))
+f.write("# Profuncidad del pozo de potencial v0 = {0} en T\n".format(v0))
 f.write("# Autovalores calculados\n")
 
 ## Paso a unidades atomicas
 Zmax = Zmax/a0; Zmin = Zmin/a0;
 Rmax = Rmax/a0; Rmin = Rmin/a0;
-sigma = sigma/a0;
+sigma = sigma/a0; beta = beta*a0;
 v0 = v0/eV;
 
 ## Vector de knots para definir los B-splines, distribucion uniforme
@@ -115,7 +115,6 @@ knots_z = knots_sequence(grado, 'exp', N_intervalos_z, beta, Zmin, Zmax);
 x, w = np.polynomial.legendre.leggauss(N_cuad);
 
 ## Escribo bien los nodos y los pesos para las integrales en r
-# aux = np.zeros(N_cuad);
 r_nodos = np.array([]);
 wr_pesos = np.array([]);
 for i in range(N_intervalos_r+1):
@@ -199,14 +198,18 @@ U = np.tile(U, (N_splines_z, 1));
 Vp_z = np.dot(np.transpose(bsz), (np.transpose(U)*np.transpose(wz_pesos)*bsz));
 Vp_z = np.array([[Vp_z[i][j] for i in range(1, N_splines_z-1)] for j in range(1, N_splines_z-1)]);
 
+
+
 ## Calculo los autovalores y autovectores
 auval = np.zeros(N_dim);
 for bcampo in bcampo_vec:
 
-	omega = 0.5*bcampo/(me*c_light*ua_to_T);
-	## Armo el hamiltoniano del problema
+	omega = 0.5*bcampo/(me*c_light*ua_to_T);  ## Frecuencia de oscilacion debida al campo
+
+	## El hamiltoniano en la coordenada r es
 	Hr = Tr + omega**2*V_B + VL2z + omega*Lz;
 
+	## Armo el hamiltoniano del problema
 	Ht = np.kron(Hr, Sz) + np.kron(Sr, Tz) - v0*np.kron(Vp_r, Vp_z);
 	St = np.kron(Sr, Sz);
 
@@ -215,17 +218,10 @@ for bcampo in bcampo_vec:
 
 	auval = np.vstack((auval, e));
 
-auval = np.array([[auval[i][j] for i in range(1,np.size(bcampo_vec)+1)] for j in range(30)]);
+	f.write("{:13.9e}   ".format(bcampo))
+	for i in range(100):
+		f.write("{:13.9e}   ".format(e[i]))
 
-# for i in range(10):
-# 	estado = np.zeros(np.size(bcampo_vec));
-# 	for j in range(np.size(bcampo_vec)):
-# 		estado[j] = auval[i][j];
-#
-# 	plt.plot(bcampo_vec, estado, '-')
-#
-# plt.show()
+	f.write("\n")
 
-auval = np.vstack((np.transpose(bcampo_vec), auval));
-
-np.savetxt(archivo, np.transpose(auval))
+f.close()

@@ -43,12 +43,6 @@ def V_campo(me, omega, x):
 def V_potencial_pozo(sigma, x):
 	U = np.exp(-0.5*x**2/sigma**2);
 	return U
-#############################
-
-## Energia cinetica del momento angular
-def L2_angular(me, mz, x):
-	L2z = 0.5*mz**2/(me*x**2);
-	return L2z
 
 #######################################
 #######################################
@@ -60,12 +54,12 @@ def L2_angular(me, mz, x):
 a0 = 0.0529177210; eV = 27.21138564; c_light = 137.035999074492; ua_to_T = 1.72e3;
 
 ## Parametros fisicos del problema
-me = 0.063; ## Masa de la particula
+me = 1.0; ## Masa de la particula
 mz = 0.0; ## Componente z del momento angular
 sigma = 15.0; ## Ancho del pozo gaussiano en nm
-v0 = 0.0; ## Profundidad del pozo en eV
+bcampo = 0.0; ## Intensidad de campo magnetico en teslas
 
-bcampo_vec = np.linspace(0, 100, 100);
+v0_vec = np.linspace(0, 0.01, 100);
 
 ## Separo las coordenadas y tomo distinta base en r y en z
 Rmin = 0.0;
@@ -74,40 +68,25 @@ Rmax = 100.0;
 Zmax = 100.0;
 Zmin = -Zmax;
 
-N_intervalos_r = 30; N_intervalos_z = 30;
+N_intervalos_r = 12; N_intervalos_z = 12;
 N_cuad = 100;
 grado = 4;
 kord = grado + 1;
-beta = 0.01;
+beta = 0.05; ## Cte de decaimiento para los knots en la distribucion exponencial
 N_splines_r = N_intervalos_r + grado; N_splines_z = N_intervalos_z + grado;
-N_base_r = N_splines_r - 1; N_base_z = N_splines_z - 2;
+N_base_r = N_splines_r - 2; N_base_z = N_splines_z - 2;
 
-N_dim = N_base_r*N_base_z; # Tamano de las matrices
-
-archivo = "./resultados/1e-E_vs_B-v0%e-mz%d.dat" % (v0, mz)
-
-f = open(archivo, 'w')
-f.write("# Intervalo de integracion en r [{0}, {1}]\n".format(Rmin, Rmax))
-f.write("# Intervalo de integracion en z [{0}, {1}]\n".format(Zmin, Zmax))
-f.write("# Grado de los B-splines {0}\n".format(grado))
-f.write("# Num de intervalos {0} y tamano de base {1} en r\n".format(N_intervalos_r, N_base_r))
-f.write("# Num de intervalos {0} y tamano de base {1} en z\n".format(N_intervalos_z, N_base_z))
-f.write("# Dimension total del espacio N_dim = N_base_r*N_base_z = {0}\n".format(N_dim))
-f.write("# Cte de separacion de knots en dist exp beta = {0}\n".format(beta))
-f.write("# Orden de la cuadratura N_cuad = {0}\n".format(N_cuad))
-f.write("# Masa de la particula me = {0} en UA\n".format(me))
-f.write("# Componente z del momento angular mz = {0}\n".format(mz))
-f.write("# Ancho del pozo gaussiano sigma = {0} en nm\n".format(sigma))
-f.write("# Profundidad del pozo = {0} en T\n".format(v0))
-f.write("# Autovalores calculados\n")
+N_dim = N_base_r**2*N_base_z; # Tamano de las matrices
 
 ## Paso a unidades atomicas
 Zmax = Zmax/a0; Zmin = Zmin/a0;
 Rmax = Rmax/a0; Rmin = Rmin/a0;
-sigma = sigma/a0;
-v0 = v0/eV;
+sigma = sigma/a0; beta = beta*a0;
+omega = 0.5*bcampo/(me*c_light*ua_to_T);  ## Frecuencia de oscilacion debida al campo
 
 ## Vector de knots para definir los B-splines, distribucion uniforme
+# knots_r = np.hstack((np.hstack((np.tile(Rmin, grado), np.linspace(Rmin, Rmax, N_intervalos_r+1))) , np.tile(Rmax, grado)));
+# knots_z = np.hstack((np.hstack((np.tile(Zmin, grado), np.linspace(Zmin, Zmax, N_intervalos_z+1))) , np.tile(Zmax, grado)));
 knots_r = knots_sequence(grado, 'exp', N_intervalos_r, beta, Rmin, Rmax);
 knots_z = knots_sequence(grado, 'exp', N_intervalos_z, beta, Zmin, Zmax);
 
@@ -115,7 +94,6 @@ knots_z = knots_sequence(grado, 'exp', N_intervalos_z, beta, Zmin, Zmax);
 x, w = np.polynomial.legendre.leggauss(N_cuad);
 
 ## Escribo bien los nodos y los pesos para las integrales en r
-# aux = np.zeros(N_cuad);
 r_nodos = np.array([]);
 wr_pesos = np.array([]);
 for i in range(N_intervalos_r+1):
@@ -157,7 +135,7 @@ dbsz = [basis.d(i) for i in z_nodos];                        # evaluo las deriva
 
 ## Matriz de solapamiento en r
 Sr = np.dot(np.transpose(bsr), (np.transpose(r_nodos2)*np.transpose(wr_pesos)*bsr));
-Sr = np.array([[Sr[i][j] for i in range(N_splines_r-1)] for j in range(N_splines_r-1)]);
+Sr = np.array([[Sr[i][j] for i in range(1, N_splines_r-1)] for j in range(1, N_splines_r-1)]);
 
 ## Matriz de solapamiento en z
 Sz = np.dot(np.transpose(bsz), (np.transpose(wz_pesos)*bsz));
@@ -165,67 +143,64 @@ Sz = np.array([[Sz[i][j] for i in range(1, N_splines_z-1)] for j in range(1, N_s
 
 ## Matriz de energia cinetica en r
 Tr = 0.5/me*np.dot(np.transpose(dbsr), (np.transpose(r_nodos2)*np.transpose(wr_pesos)*dbsr));
-Tr = np.array([[Tr[i][j] for i in range(N_splines_r-1)] for j in range(N_splines_r-1)]);
+Tr = np.array([[Tr[i][j] for i in range(1, N_splines_r-1)] for j in range(1, N_splines_r-1)]);
 
 ## Matriz de energia cinetica en z
 Tz = 0.5/me*np.dot(np.transpose(dbsz), (np.transpose(wz_pesos)*dbsz));
 Tz = np.array([[Tz[i][j] for i in range(1, N_splines_z-1)] for j in range(1, N_splines_z-1)]);
 
-## Matriz de momento angular al cuadrado
-L2z = L2_angular(me, mz, r_nodos);
-L2z = np.tile(L2z, (N_splines_r, 1));
-VL2z = np.dot(np.transpose(bsr), (np.transpose(r_nodos2)*np.transpose(L2z)*np.transpose(wr_pesos)*bsr));
-VL2z = np.array([[VL2z[i][j] for i in range(N_splines_r-1)] for j in range(N_splines_r-1)]);
-
-## Matriz del momento angular
-Lz = np.dot(np.transpose(bsr), (np.transpose(r_nodos2)*np.transpose(wr_pesos)*bsr));
-Lz = np.array([[Lz[i][j] for i in range(N_splines_r-1)] for j in range(N_splines_r-1)]);
-
 ## Matriz de energia potencial de campo magnetico
 U = V_campo(me, 1.0, r_nodos);
 U = np.tile(U, (N_splines_r, 1));
 V_B = np.dot(np.transpose(bsr), (np.transpose(r_nodos2)*np.transpose(U)*np.transpose(wr_pesos)*bsr));
-V_B = np.array([[V_B[i][j] for i in range(N_splines_r-1)] for j in range(N_splines_r-1)]);
+V_B = np.array([[V_B[i][j] for i in range(1, N_splines_r-1)] for j in range(1, N_splines_r-1)]);
 
 ## Matriz de energia de potencial del pozo de potencial
 # Primero en la variable r
 U = V_potencial_pozo(sigma, r_nodos);
 U = np.tile(U, (N_splines_r, 1));
 Vp_r = np.dot(np.transpose(bsr), (np.transpose(r_nodos2)*np.transpose(U)*np.transpose(wr_pesos)*bsr));
-Vp_r = np.array([[Vp_r[i][j] for i in range(N_splines_r-1)] for j in range(N_splines_r-1)]);
+Vp_r = np.array([[Vp_r[i][j] for i in range(1, N_splines_r-1)] for j in range(1, N_splines_r-1)]);
 # Segundo en la variable z
 U = V_potencial_pozo(sigma, z_nodos);
 U = np.tile(U, (N_splines_z, 1));
 Vp_z = np.dot(np.transpose(bsz), (np.transpose(U)*np.transpose(wz_pesos)*bsz));
 Vp_z = np.array([[Vp_z[i][j] for i in range(1, N_splines_z-1)] for j in range(1, N_splines_z-1)]);
 
+## La matriz del pozo de potencial es
+Vt = np.kron(np.kron(Vp_r, Vp_r), Vp_z);
+
+## El hamiltoniano en la coordenada x o y es
+Hr = Tr + omega**2*V_B;
+## El hamiltoniano sin el pozo en las 3 coordenadas es
+Hxyz = np.kron(np.kron(Hr, Sr), Sz) + np.kron(np.kron(Sr, Hr), Sz) + np.kron(np.kron(Sr, Sr), Tz);
+
+## La matriz de solapamiento total es
+St = np.kron(np.kron(Sr, Sr), Sz);
+
 ## Calculo los autovalores y autovectores
 auval = np.zeros(N_dim);
-for bcampo in bcampo_vec:
-
-	omega = 0.5*bcampo/(me*c_light*ua_to_T);
-	## Armo el hamiltoniano del problema
-	Hr = Tr + omega**2*V_B + VL2z + omega*Lz;
-
-	Ht = np.kron(Hr, Sz) + np.kron(Sr, Tz) - v0*np.kron(Vp_r, Vp_z);
-	St = np.kron(Sr, Sz);
+for v0 in v0_vec:
+	v0 = v0/eV;
+	## Armo el hamiltoniano total del problema
+	Ht = Hxyz - v0*Vt;
 
 	e, auvec = LA.eigh(Ht, St);
 	e = eV*e;
 
 	auval = np.vstack((auval, e));
 
-auval = np.array([[auval[i][j] for i in range(1,np.size(bcampo_vec)+1)] for j in range(30)]);
+auval_salida = np.array([[auval[i][j] for i in range(1,np.size(v0_vec)+1)] for j in range(30)]);
 
-# for i in range(10):
-# 	estado = np.zeros(np.size(bcampo_vec));
-# 	for j in range(np.size(bcampo_vec)):
-# 		estado[j] = auval[i][j];
-#
-# 	plt.plot(bcampo_vec, estado, '-')
-#
-# plt.show()
+for i in range(10):
+	estado = np.zeros(np.size(v0_vec));
+	for j in range(np.size(v0_vec)):
+		estado[j] = auval[i][j];
 
-auval = np.vstack((np.transpose(bcampo_vec), auval));
+	plt.plot(v0_vec, estado, '-')
 
-np.savetxt(archivo, np.transpose(auval))
+plt.show()
+
+auval_salida = np.vstack((np.transpose(v0_vec), auval_salida));
+
+np.savetxt('./resultados/1e-E_vs_V0.dat', np.transpose(auval_salida))
