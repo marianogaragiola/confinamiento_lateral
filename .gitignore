@@ -13,4 +13,5 @@
 *.log
 *.aux
 *.tar.gz
+*.pyc
 octave-workspace
