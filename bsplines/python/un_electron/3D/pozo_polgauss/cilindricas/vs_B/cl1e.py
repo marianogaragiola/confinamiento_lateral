@@ -62,20 +62,21 @@ a0 = 0.0529177210; eV = 27.21138564; c_light = 137.035999074492; ua_to_T = 1.72e
 ## Parametros fisicos del problema
 me = 0.063; ## Masa de la particula
 mz = 0.0; ## Componente z del momento angular
-sigma = 15.0; ## Ancho del pozo gaussiano en nm
-v0 = 0.05; ## Intensidad de campo magnetico en teslas
+sigma = 2.0; ## Ancho del pozo gaussiano en nm
+v1 = 0.05; ## Parametro del pozo en eV/nm^2
+v2 = 0.45; ## Intensidad de campo magnetico en teslas
 
-bcampo_vec = np.linspace(0.0, 100.0, 100);
+bcampo_vec = np.linspace(0.0, 1000.0, 1000);
 
 ## Separo las coordenadas y tomo distinta base en r y en z
 Rmin = 0.0;
-Rmax = 1000.0;
+Rmax = 100.0;
 
 Zmax = 1000.0;
 Zmin = -Zmax;
 
 N_intervalos_r = 30; N_intervalos_z = 30;
-N_cuad = 200;
+N_cuad = 100;
 grado = 4;
 kord = grado + 1;
 beta = 0.0065; ## Cte de decaimiento para los knots en la distribucion exponencial
@@ -84,7 +85,7 @@ N_base_r = N_splines_r - 1; N_base_z = N_splines_z - 2;
 
 N_dim = N_base_r*N_base_z; # Tamano de las matrices
 
-archivo = "./resultados/1e-E_vs_B-v0_%6.4feV-mz_%d.dat" % (v0, mz)
+archivo = "./resultados/1e-E_vs_v2-v1_%6.4feVsnm2-v2_%6.4feV-mz_%d-2.dat" % (v1, v2, mz)
 
 f = open(archivo, 'w')
 f.write("# Intervalo de integracion en r [{0}, {1}]\n".format(Rmin, Rmax))
@@ -98,17 +99,19 @@ f.write("# Orden de la cuadratura N_cuad = {0}\n".format(N_cuad))
 f.write("# Masa de la particula me = {0} en UA\n".format(me))
 f.write("# Componente z del momento angular mz = {0}\n".format(mz))
 f.write("# Ancho del pozo gaussiano sigma = {0} en nm\n".format(sigma))
-f.write("# Profuncidad del pozo de potencial v0 = {0} en T\n".format(v0))
+f.write("# Parametro del pozo v1 = {0} en eV/nm^2\n".format(v1))
+f.write("# Parametro del pozo v2 = {0} en eV\n".format(v2))
 f.write("# Autovalores calculados\n")
 
 ## Paso a unidades atomicas
 Zmax = Zmax/a0; Zmin = Zmin/a0;
 Rmax = Rmax/a0; Rmin = Rmin/a0;
 sigma = sigma/a0; beta = beta*a0;
-v0 = v0/eV;
+v1 = v1*a0**2/eV; v2 = v2/eV;
+
 
 ## Vector de knots para definir los B-splines, distribucion uniforme
-knots_r = knots_sequence(grado, 'exp', N_intervalos_r, beta, Rmin, Rmax);
+knots_r = knots_sequence(grado, 'uniform', N_intervalos_r, beta, Rmin, Rmax);
 knots_z = knots_sequence(grado, 'exp', N_intervalos_z, beta, Zmin, Zmax);
 
 ## Pesos y nodos para la cuadratura de Gauss-Hermite
@@ -138,7 +141,7 @@ for i in range(N_intervalos_z+1):
 	wz_pesos = np.hstack((wz_pesos, aux_w));
 
 wz_pesos = np.tile(wz_pesos, (N_splines_z, 1));
-z_nodos2 = np.tile(z_nodos, (N_splines_z, 1));
+# z_nodos2 = np.tile(z_nodos, (N_splines_z, 1));
 
 
 ## B-splines en la coordenada r
@@ -188,17 +191,31 @@ V_B = np.array([[V_B[i][j] for i in range(N_splines_r-1)] for j in range(N_splin
 
 ## Matriz de energia de potencial del pozo de potencial
 # Primero en la variable r
-U = V_potencial_pozo(sigma, r_nodos);
-U = np.tile(U, (N_splines_r, 1));
-Vp_r = np.dot(np.transpose(bsr), (np.transpose(r_nodos2)*np.transpose(U)*np.transpose(wr_pesos)*bsr));
-Vp_r = np.array([[Vp_r[i][j] for i in range(N_splines_r-1)] for j in range(N_splines_r-1)]);
-# Segundo en la variable z
-U = V_potencial_pozo(sigma, z_nodos);
-U = np.tile(U, (N_splines_z, 1));
-Vp_z = np.dot(np.transpose(bsz), (np.transpose(U)*np.transpose(wz_pesos)*bsz));
-Vp_z = np.array([[Vp_z[i][j] for i in range(1, N_splines_z-1)] for j in range(1, N_splines_z-1)]);
+expr = V_potencial_pozo(sigma, r_nodos);
+expz = V_potencial_pozo(sigma, z_nodos);
 
+Ur = r_nodos**2*expr;
+Uz = z_nodos**2*expz;
 
+expr = np.tile(expr, (N_splines_r, 1));
+Ur = np.tile(Ur, (N_splines_r, 1));
+
+expz = np.tile(expz, (N_splines_z, 1));
+Uz = np.tile(Uz, (N_splines_z, 1));
+
+V1r = np.dot(np.transpose(bsr), (np.transpose(r_nodos2)*np.transpose(Ur)*np.transpose(wr_pesos)*bsr));
+V1r = np.array([[V1r[i][j] for i in range(N_splines_r-1)] for j in range(N_splines_r-1)]);
+
+V2r = np.dot(np.transpose(bsr), (np.transpose(r_nodos2)*np.transpose(expr)*np.transpose(wr_pesos)*bsr));
+V2r = np.array([[V2r[i][j] for i in range(N_splines_r-1)] for j in range(N_splines_r-1)]);
+
+V1z = np.dot(np.transpose(bsz), (np.transpose(Uz)*np.transpose(wz_pesos)*bsz));
+V1z = np.array([[V1z[i][j] for i in range(1, N_splines_z-1)] for j in range(1, N_splines_z-1)]);
+
+V2z = np.dot(np.transpose(bsz), (np.transpose(expz)*np.transpose(wz_pesos)*bsz));
+V2z = np.array([[V2z[i][j] for i in range(1, N_splines_z-1)] for j in range(1, N_splines_z-1)]);
+
+V = v1*(np.kron(V1r, V2z) + np.kron(V2r, V1z)) - v2*np.kron(V2r, V2z);
 
 ## Calculo los autovalores y autovectores
 auval = np.zeros(N_dim);
@@ -206,11 +223,11 @@ for bcampo in bcampo_vec:
 
 	omega = 0.5*bcampo/(me*c_light*ua_to_T);  ## Frecuencia de oscilacion debida al campo
 
-	## El hamiltoniano en la coordenada r es
-	Hr = Tr + omega**2*V_B + VL2z + omega*Lz;
-
+	## El hamiltoniano en la coordenada r sin el pozo es
+	Hr = Tr + omega**2*V_B + VL2z + omega*mz*Lz;
+	
 	## Armo el hamiltoniano del problema
-	Ht = np.kron(Hr, Sz) + np.kron(Sr, Tz) - v0*np.kron(Vp_r, Vp_z);
+	Ht = np.kron(Hr, Sz) + np.kron(Sr, Tz) + V;
 	St = np.kron(Sr, Sz);
 
 	e, auvec = LA.eigh(Ht, St);
@@ -224,4 +241,18 @@ for bcampo in bcampo_vec:
 
 	f.write("\n")
 
+# auval = np.array([[auval[i][j] for i in range(1,np.size(bcampo_vec)+1)] for j in range(30)]);
+# 
+# for i in range(20):
+# 	estado = np.zeros(np.size(bcampo_vec));
+# 	for j in range(np.size(bcampo_vec)):
+# 		estado[j] = auval[i][j];
+# 
+# 	plt.plot(bcampo_vec, estado, '-')
+# 
+# plt.show()
+# 
+# auval = np.vstack((np.transpose(bcampo_vec), auval));
+#
+# np.savetxt(archivo, np.transpose(auval))
 f.close()
