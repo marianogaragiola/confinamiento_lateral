@@ -12,9 +12,9 @@ num_puntos = 100
 v1			 = 0.05
 v2			 = 0.45
 sigma		 = 2.0
-b_campo	 = 150.0
+b_campo	 = 200.0
 
-archivo = "./potencial/V_QD-v1_%6.4feVsnm2-v2_%6.4feV-B_%6.4fT.dat" % (v1, v2, b_campo)
+archivo = "V_QD-v1_%6.4feVsnm2-v2_%6.4feV-B_%6.4fT.dat" % (v1, v2, b_campo)
 
 ZMIN = ZMIN/a0; ZMAX = ZMAX/a0; sigma = sigma/a0
 v1 = v1*a0**2/eV; v2 = v2/eV
@@ -37,9 +37,6 @@ salida = np.vstack((z, V))
 
 f = open(archivo, 'w')
 
-np.savetxt(archivo, salida)
+np.savetxt(archivo, np.transpose(salida))
 
 f.close()
-
-plt.plot(z, V)
-plt.show()

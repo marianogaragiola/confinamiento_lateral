@@ -1,16 +1,29 @@
 # Codigo en python que calcula los autovalores de una
-# particula en un pozo guassiano de simetrica esferica
+# particula en un pozo de simetrica esferica
 # al cual se le aplica un campo magnetico.
 # Se calcula los elementos de matriz del hamiltoniano
 # en coordenadas cilindricas.
 # El hamiltoniano es
 #
 # H = -hbar^2/(2*me) (1/r*d/dr(r*d/dr)+d^2/dz^2) + V(r,z) +
-#     + 0.5*me*omega^2*r^2 + hbar^2m^2/(2*me*r^2) + hbar*omega*m
+#     + 0.5*me*omega^2*r^2 + hbar^2mz^2/(2*me*r^2) + hbar*omega*mz
 #
-# donde m es la componente en el eje z del momento angular.
+# donde mz es la componente en el eje z del momento angular.
 #
-# V(r,z) = -v0*exp(-(r^2+z^2)/(2*sigma))
+# El potencial de confinamiento para la particula es
+# un polinomio de segundo orden multiplicado por una exponencial
+# gaussiana de ancho sigma
+#
+# V(r,z) = (v1*(r^2+z^2) - v2)*exp(-0.5*(r^2+z^2)/sigma^2)
+#
+# La matriz del hamiltoniano la calculo usando como base
+# del espacio los B-splines. El problema de autovalores es un
+# problema generalizado
+#
+#     H*c = E*S*c
+#
+# Guardo, los autovalores del hamiltoniano en funcion del
+# campo magnetico aplicado.
 #######################################################################
 #######################################################################
 import numpy as np
@@ -60,24 +73,26 @@ def L2_angular(me, mz, x):
 a0 = 0.0529177210; eV = 27.21138564; c_light = 137.035999074492; ua_to_T = 1.72e3;
 
 ## Parametros fisicos del problema
-me = 0.063; ## Masa de la particula
-mz = 0.0; ## Componente z del momento angular
-sigma = 2.0; ## Ancho del pozo gaussiano en nm
-v1 = 0.05; ## Parametro del pozo en eV/nm^2
-v2 = 0.45; ## Intensidad de campo magnetico en teslas
+me		 = 0.063; ## Masa de la particula
+mz		 = 0.0; ## Componente z del momento angular
+sigma	 = 10.0; ## Ancho del pozo gaussiano en nm
+v1		 = 0.01; ## Parametro del pozo en eV/nm^2
+v2		 = 0.30; ## Intensidad de campo magnetico en teslas
+B_i		 = 0.0;
+B_f 	 = 200.0;
 
-bcampo_vec = np.linspace(0.0, 1000.0, 1000);
+bcampo_vec = np.linspace(B_i, B_f, 400);
 
 ## Separo las coordenadas y tomo distinta base en r y en z
 Rmin = 0.0;
-Rmax = 100.0;
+Rmax = 20.0;
 
-Zmax = 1000.0;
+Zmax = 50.0;
 Zmin = -Zmax;
 
 N_intervalos_r = 30; N_intervalos_z = 30;
-N_cuad = 100;
-grado = 4;
+N_cuad = 1000;
+grado = 6;
 kord = grado + 1;
 beta = 0.0065; ## Cte de decaimiento para los knots en la distribucion exponencial
 N_splines_r = N_intervalos_r + grado; N_splines_z = N_intervalos_z + grado;
@@ -85,7 +100,8 @@ N_base_r = N_splines_r - 1; N_base_z = N_splines_z - 2;
 
 N_dim = N_base_r*N_base_z; # Tamano de las matrices
 
-archivo = "./resultados/1e-E_vs_v2-v1_%6.4feVsnm2-v2_%6.4feV-mz_%d-2.dat" % (v1, v2, mz)
+# archivo = "./resultados1909/1e-E_vs_B-v1_%6.4feVsnm2-v2_%6.4feV-sigma_%6.4fnm-mz_%d-Bi_%3.1f-Bf_%3.1f-1.dat" % (v1, v2, sigma, mz, B_i, B_f)
+archivo = "./resultados2309/E_vs_B-v1%6.4feVsnm2-v2%6.4feV-sigma%6.4fnm-Bi%3.1f-Bf%3.1f-R%6.4f-Z%6.4f.dat" % (v1, v2, sigma, B_i, B_f, Rmax, Zmax)
 
 f = open(archivo, 'w')
 f.write("# Intervalo de integracion en r [{0}, {1}]\n".format(Rmin, Rmax))
@@ -112,7 +128,7 @@ v1 = v1*a0**2/eV; v2 = v2/eV;
 
 ## Vector de knots para definir los B-splines, distribucion uniforme
 knots_r = knots_sequence(grado, 'uniform', N_intervalos_r, beta, Rmin, Rmax);
-knots_z = knots_sequence(grado, 'exp', N_intervalos_z, beta, Zmin, Zmax);
+knots_z = knots_sequence(grado, 'uniform', N_intervalos_z, beta, Zmin, Zmax);
 
 ## Pesos y nodos para la cuadratura de Gauss-Hermite
 x, w = np.polynomial.legendre.leggauss(N_cuad);
@@ -225,7 +241,7 @@ for bcampo in bcampo_vec:
 
 	## El hamiltoniano en la coordenada r sin el pozo es
 	Hr = Tr + omega**2*V_B + VL2z + omega*mz*Lz;
-	
+
 	## Armo el hamiltoniano del problema
 	Ht = np.kron(Hr, Sz) + np.kron(Sr, Tz) + V;
 	St = np.kron(Sr, Sz);
@@ -236,23 +252,14 @@ for bcampo in bcampo_vec:
 	auval = np.vstack((auval, e));
 
 	f.write("{:13.9e}   ".format(bcampo))
-	for i in range(100):
+	for i in range(30):
 		f.write("{:13.9e}   ".format(e[i]))
 
 	f.write("\n")
 
-# auval = np.array([[auval[i][j] for i in range(1,np.size(bcampo_vec)+1)] for j in range(30)]);
-# 
 # for i in range(20):
-# 	estado = np.zeros(np.size(bcampo_vec));
-# 	for j in range(np.size(bcampo_vec)):
-# 		estado[j] = auval[i][j];
-# 
-# 	plt.plot(bcampo_vec, estado, '-')
-# 
-# plt.show()
-# 
-# auval = np.vstack((np.transpose(bcampo_vec), auval));
+# 	plt.plot(bcampo_vec, auval[1:,i])
 #
-# np.savetxt(archivo, np.transpose(auval))
+# plt.show()
+
 f.close()

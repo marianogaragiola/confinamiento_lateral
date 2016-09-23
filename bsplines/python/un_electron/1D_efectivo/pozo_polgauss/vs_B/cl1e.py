@@ -1,8 +1,22 @@
 # Codigo que calcula los autovalores y autovectores del hamiltoniano
 # efectio 1D para un electron.
 #
-# Terminar la descripcion
+# El hamiltoniano del sistema es
 #
+#   Hz = -hbar^2/(2*me)*d^2/dz^2 + V_{ef}(z)
+#
+# El potencial de confinamiento efectivo es
+#
+#   V_{ef}(z) = (v1*l^2/(1+l^2/(2*sigma^2))^2 + (v1*z^2-v2)/(1+l^2/(2*sigma^2)))*exp(-z^2/(2*sigma^2))
+#
+# La matriz del hamiltoniano la calculo usando como base
+# del espacio los B-splines. El problema de autovalores es un
+# problema generalizado
+#
+#     H*c = E*S*c
+#
+# Guardo, los autovalores del hamiltoniano en funcion del
+# campo magnetico aplicado.
 #######################################################################
 #######################################################################
 import numpy as np
@@ -41,20 +55,20 @@ a0 = 0.0529177210; eV = 27.21138564; c_light = 137.035999074492; ua_to_T = 1.72e
 alpha = 658.4092645439;
 
 ## Parametros fisicos del problema
-me = 0.063; ## Masa de la particula
-sigma = 2.0; ## Ancho del pozo gaussiano en nm
-v1 = 0.05; ## Parametro del pozo en eV/nm^2
-v2 = 0.45; ## Intensidad de campo magnetico en teslas
+me		 = 0.063; ## Masa de la particula
+sigma	 = 10.0; ## Ancho del pozo gaussiano en nm
+v1		 = 0.01; ## Parametro del pozo en eV/nm^2
+v2		 = 0.30; ## Intensidad de campo magnetico en teslas
 
-bcampo_vec = np.linspace(1.0, 1000.0, 99);
+bcampo_vec = np.linspace(1.0, 200.0, 398);
 
 ## Intervalo de integracion en la coordenada z
-Zmax = 100.0;
+Zmax = 50.0;
 Zmin = -Zmax;
 
-N_intervalos_z = 50;
+N_intervalos_z = 100;
 N_cuad = 100;
-grado = 4;
+grado = 6;
 kord = grado + 1;
 beta = 0.0065; ## Cte de decaimiento para los knots en la distribucion exponencial
 N_splines_z = N_intervalos_z + grado;
@@ -68,7 +82,7 @@ if nev > N_dim:
 	print "nev > N_dim, cambiar el valor de nev"
 	exit(0)
 
-archivo = "./resultados/1e-E_vs_B-v1_%6.4feVsnm2-v2_%6.4feV-sigma_%6.4f.dat" % (v1, v2, sigma)
+archivo = "./resultados2309/E_vs_B-v1_%6.4feVsnm2-v2_%6.4feV-sigma_%6.4f-Zmax_%6.4f.dat" % (v1, v2, sigma, Zmax)
 
 f = open(archivo, 'w')
 f.write("# Intervalo de integracion en z [{0}, {1}]\n".format(Zmin, Zmax))
@@ -139,17 +153,19 @@ V2z = np.array([[V2z[i][j] for i in range(1, N_splines_z-1)] for j in range(1, N
 auval = np.zeros(N_dim);
 for bcampo in bcampo_vec:
 
-	l_campo = np.sqrt(2.0*alpha/bcampo)/a0;
-	b = 0.5/sigma**2;
+	# l_campo = np.sqrt(2.0*alpha/bcampo)/a0;
+	# b = 0.5/sigma**2;
 
-	cte1 = l_campo**2/(1. + l_campo**2*b);
-	cte2 = 1./(1. + l_campo**2*b);
+	# v1_2 = v1/(1.0 + l_campo**2*b)
+	# v2_2 = (v1*l_campo**2/(1.0 + l_campo**2*b)**2 - v2/(1.0 + l_campo**2*b))
 
-	v1_2 = v1/(1.0 + l_campo**2*b)
-	v2_2 = (v1*l_campo**2 - v2)/(1.0 + l_campo**2*b)
+	l_campo = np.sqrt(alpha/bcampo)/a0;
+
+	v1_2 = v1/(1.0 + (l_campo/sigma)**2)
+	v2_2 = (v1*l_campo**2/(1.0 + (l_campo/sigma)**2)**2 - v2/(1.0 + (l_campo/sigma)**2))
 
 	# El hamiltoniano es
-	# Hz = Tz + (v1*cte1-v2*cte2)*V1z + v1*cte2*V2z
+
 	Hz = Tz + v1_2*V2z + v2_2*V1z
 
 	e, auvec = LA.eigh(Hz, Sz);
@@ -163,4 +179,8 @@ for bcampo in bcampo_vec:
 
 	f.write("\n")
 
+# for i in range(20):
+# 	plt.plot(bcampo_vec, auval[1:,i])
+#
+# plt.show()
 f.close()

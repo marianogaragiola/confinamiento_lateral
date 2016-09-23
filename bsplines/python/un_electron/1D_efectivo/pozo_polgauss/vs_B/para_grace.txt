@@ -1,0 +1,3 @@
+\1V(r) = (v\s1\N r\S2\N - v\s2\N) e\S-r\S2\N\S/2\xs\S2
+
+v\s1\N =  eV/nm\S2\N; v\s2\N = eV; \xs\f{} =  nm
