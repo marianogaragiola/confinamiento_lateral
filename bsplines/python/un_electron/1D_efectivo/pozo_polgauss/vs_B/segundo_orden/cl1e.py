@@ -20,7 +20,7 @@
 #######################################################################
 #######################################################################
 import numpy as np
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 from scipy import linalg as LA
 from bspline import Bspline
 from sys import exit
@@ -58,7 +58,7 @@ alpha = 658.4092645439;
 me		 = 0.063; ## Masa de la particula
 sigma	 = 10.0; ## Ancho del pozo gaussiano en nm
 v1		 = 0.0042; ## Parametro del pozo en eV/nm^2
-v2		 = 0.2; ## Intensidad de campo magnetico en teslas
+v2		 = 0.1; ## Intensidad de campo magnetico en teslas
 
 bcampo_vec = np.linspace(1.0, 200.0, 398);
 
@@ -82,8 +82,8 @@ if nev > N_dim:
 	print "nev > N_dim, cambiar el valor de nev"
 	exit(0)
 
-archivo1 = "./resultados1210/E_vs_B-v1_%6.4feVsnm2-v2_%6.4feV-sigma_%6.4f-Zmax_%6.4f.dat" % (v1, v2, sigma, Zmax)
-archivo2 = "./resultados1210/z_vs_B-v1_%6.4feVsnm2-v2_%6.4feV-sigma_%6.4f-Zmax_%6.4f.dat" % (v1, v2, sigma, Zmax)
+archivo1 = "./resultados1710/E_vs_B-v1_%6.4feVsnm2-v2_%6.4feV-sigma_%6.4f-Zmax_%6.4f.dat" % (v1, v2, sigma, Zmax)
+archivo2 = "./resultados1710/z_vs_B-v1_%6.4feVsnm2-v2_%6.4feV-sigma_%6.4f-Zmax_%6.4f.dat" % (v1, v2, sigma, Zmax)
 
 f1 = open(archivo1, 'w')
 f2 = open(archivo2, 'w')
@@ -123,8 +123,6 @@ for i in range(N_intervalos_z+1):
 wz_pesos = np.tile(wz_pesos, (N_splines_z, 1));
 z_nodos2 = np.tile(z_nodos, (N_splines_z, 1));
 
-
-
 ## B-splines en la coordenada z
 basis = Bspline(knots_z, grado);
 ## Calculo la matriz con los bsplines y sus derivadas en z
@@ -160,20 +158,25 @@ V2z = np.array([[V2z[i][j] for i in range(1, N_splines_z-1)] for j in range(1, N
 auval = np.zeros(N_dim);
 for bcampo in bcampo_vec:
 
-	# l_campo = np.sqrt(2.0*alpha/bcampo)/a0;
-	# b = 0.5/sigma**2;
-
-	# v1_2 = v1/(1.0 + l_campo**2*b)
-	# v2_2 = (v1*l_campo**2/(1.0 + l_campo**2*b)**2 - v2/(1.0 + l_campo**2*b))
-
 	l_campo = np.sqrt(alpha/bcampo)/a0;
 
-	v1_2 = v1/(1.0 + (l_campo/sigma)**2)
-	v2_2 = (v1*l_campo**2/(1.0 + (l_campo/sigma)**2)**2 - v2/(1.0 + (l_campo/sigma)**2))
+	v1_1 = v1/(1.0 + (l_campo/sigma)**2)
+	v1_2 = v1*sigma**2*(sigma**6 + l_campo**4*sigma**2 + l_campo**2*sigma**4 + l_campo**6)/(l_campo**2 + sigma**2)**4
+	v1_3 = v1*l_campo**2*sigma**2/(l_campo**2 + sigma**2)**2
+
+	v1_ef = 0.5*(v1_1 + v1_2) + v1_3
+
+	v2_1 = (2.0*v1*l_campo**2/(1.0 + (l_campo/sigma)**2)**2 - v2/(1.0 + (l_campo/sigma)**2))
+	v2_2 = -v2*sigma**2*(sigma**6 + l_campo**4*sigma**2 + l_campo**2*sigma**4 + l_campo**6)/(l_campo**2 + sigma**2)**4\
+	+ v1*sigma**2*(-4.0*l_campo**4*sigma**4 + 2.0*l_campo**6*sigma**2 + 6.0*l_campo**2*sigma**6)/(l_campo**2 + sigma**2)**4
+	v2_3 = -v2*l_campo**2*sigma**2/(l_campo**2 + sigma**2)**2 \
+	+ 2.0*v1*l_campo**2*sigma**4*(l_campo**2 - sigma**2)/(l_campo**2 + sigma**2)**3
+
+	v2_ef = 0.5*(v2_1 + v2_2) + v2_3
 
 	# El hamiltoniano es
 
-	Hz = Tz + v1_2*V2z + v2_2*V1z
+	Hz = Tz + v1_ef*V2z + v2_ef*V1z
 
 	e, auvec = LA.eigh(Hz, Sz);
 	e = eV*e;

@@ -53,7 +53,7 @@ The Hamiltonian for $\psi(\rho,z)$ is then
 
 \begin{eqnarray}\label{Hrhoz}
 H &=& -\frac{\hbar^2}{2 m_e}\left[\frac{1}{\rho}\frac{\partial}{\partial \rho}\left(\rho \frac{\partial}{\partial \rho} \right)
- + \frac{\partial^2}{\partial z^2} \right] + V(\rho, z) + \frac{1}{2} m_e \omega^2 \rho^2 + \hbar \omega m + \frac{\hbar^2 m^2}{2 m_e \rho^2}\,,\\
+ + \frac{\partial^2}{\partial z^2} \right] + V(\rho, z) + \frac{1}{2} m_e \omega^2 \rho^2 + \hbar \omega m - \frac{\hbar^2 m^2}{2 m_e \rho^2}\,,\\
   &=& H^{\rho} - \frac{\hbar^2}{2 m_e}\frac{\partial^2}{\partial z^2} + V(\rho, z)\, ,
 \end{eqnarray}
 \noindent
@@ -64,28 +64,63 @@ where $H^{\rho}$ is
 \end{equation}
 
 We want to find an effective one-dimensional Hamiltonian for the $z$ coordinate. We assume that
-the electron is in the ground state of the Hamiltonian (\ref{Hrho}), so the solution of (\ref{Hrhoz})
-can be writen like $\psi(\rho, z) = r_0(\rho)\phi(z)$ with
+the electron is in a linear combination of states of the Hamiltonian (\ref{Hrho}) with $m = 0$
 \begin{equation}
-  r_0(\rho) = \sqrt{2 \beta^2}\, e^{\beta^2 \rho^2/2}\, ,
+  H_{0}^{\rho} = -\frac{\hbar^2}{2 m_e} \frac{1}{\rho}\frac{\partial}{\partial \rho}\left(\rho \frac{\partial}{\partial \rho} \right) +
+  \frac{1}{2} m_e \omega^2 \rho^2 \, ,
 \end{equation}
-\noindent where $\beta = \sqrt{\frac{m_e \omega}{\hbar}}$.
+\noindent so the solution of (\ref{Hrhoz})
+can be writen like $\psi(\rho, z) = \frac{r(\rho)\phi(z)}{\sqrt{2\pi}}$. In this case we supose
+\begin{equation}
+  r(\rho) = c_{\rho}\, r_0(\rho) + \sqrt{1 - c_{\rho}^2}\, r_2(\rho)
+\end{equation}
+\noindent and the states are
+\begin{eqnarray}
+  r_0(\rho) &=& \sqrt{2 \beta^2}\, e^{-\beta^2 \rho^2/2}\,,\,\,\,\,\,H_{0}^{\rho} r_0(\rho) = \hbar \omega r_0(\rho) ,\\
+  r_2(\rho) &=& \sqrt{2 \beta^2}\, \left(1 - \beta^2 \rho^2 \right)\, e^{-\beta^2 \rho^2/2}\,,\,\,\,\,\,H_{0}^{\rho} r_2(\rho) = 3\,\hbar \omega r_2(\rho).
+\end{eqnarray}
+\noindent where $\beta = \sqrt{\frac{m_e \omega}{\hbar}} = \frac{1}{2\,l^2}$.
 
 The effective Hamiltonian for the wave function $\phi(z)$ is
 \begin{equation}
-  H_{eff} = \langle r_0(\rho)|H|r_0(\rho)\rangle = \hbar \omega - \frac{\hbar^2}{2 m_e}\frac{\partial^2}{\partial z^2} + V_{eff}(z)\,,
+  H_{eff} = \langle r(\rho)|H|r(\rho)\rangle = \hbar \omega - \frac{\hbar^2}{2 m_e}\frac{\partial^2}{\partial z^2} + V_{eff}(z)\,,
 \end{equation}
-\noindent here, we define de one-dimensional potential $V_{eff}(z) = \langle r_0(\rho)|V(\rho,z)|r_0(\rho)\rangle$.
+\noindent here, we define de one-dimensional potential
+\begin{equation}\label{1e_V_eff}
+  \begin{split}
+  V_{eff}(z) &= \langle r(\rho)|V(\rho,z)|r(\rho)\rangle \\
+             &= c_{\rho}^2 V_{eff}^{(1)} + (1-c_{\rho}^2) V_{eff}^{(2)} + 2c_{\rho}\sqrt{(1-c_{\rho}^2)} V_{eff}^{(3)}\,.
+  \end{split}
+\end{equation}
 
 Let us assume that the quantum dot potential has the following form
 \begin{equation}
   V(\rho,z) = \left[v_1\left(\rho^2+z^2 \right) - v_2 \right] \,e^{-\frac{\rho^2}{2\sigma^2}}\, e^{-\frac{z^2}{2\sigma^2}}\,,
 \end{equation}
-\noindent so the effective potential is
-\begin{eqnarray}
-  V_{eff}(z) &=& \left(\int_0^{2\pi}d\varphi\int_0^{\infty} \left[v_1\left(\rho^2+z^2 \right) - v_2 \right] r_0(\rho)^2 e^{-\frac{\rho^2}{2\sigma^2}}\,d\rho\,\,\right) e^{-\frac{z^2}{2\sigma^2}} \\
-             &=& 2\pi\,\left[\frac{v_1 l^2}{\left(1 + \frac{l^2}{\sigma^2}\right)^2} + \frac{(v_1 z^2 - v_2)}{\left(1 + \frac{l^2}{\sigma^2}\right)} \right]\, e^{-\frac{z^2}{2\sigma^2}}\, ,
-\end{eqnarray}
+\noindent the differents terms in Eq. (\ref{1e_V_eff}) are
+\begin{equation}
+  \begin{split}
+  V_{eff}^{(1)} &= \langle r_0(\rho) \lvert V(\rho,z) \lvert r_0(\rho) \rangle\\
+             &= \left(\int_0^{2\pi}d\varphi\int_0^{\infty} \left[v_1\left(\rho^2+z^2 \right) - v_2 \right] r_0(\rho)^2 e^{-\frac{\rho^2}{2\sigma^2}}\,d\rho\,\,\right) e^{-\frac{z^2}{2\sigma^2}} \\
+             &= \left[\frac{v_1 l^2}{\left(1 + \frac{l^2}{\sigma^2}\right)^2} + \frac{(2\,v_1 z^2 - v_2)}{\left(1 + \frac{l^2}{\sigma^2}\right)} \right]\, e^{-\frac{z^2}{2\sigma^2}}\, ,
+  \end{split}
+\end{equation}
+
+\begin{equation}
+  \begin{split}
+    V_{eff}^{(2)} &= \langle r_2(\rho) \lvert V(\rho,z) \lvert r_2(\rho) \rangle \\
+    &= \frac{\sigma^2 e^{\frac{-z^2}{2\sigma^2}}}{(l^2+\sigma^2)^4}\left[v_1 z^2 \left(\sigma^6 + l^4\sigma^2 + l^2\sigma^4 + l^6\right) \right.\\
+    &\left.- v_2 \left( \sigma^6 + l^4 \sigma^2 + l^2 \sigma^4 + l^6 \right) +v_1\left( 2l^6\sigma^2 - 4 l^4\sigma^4 + 6l^2\sigma^6 \right) \right]\, ,
+  \end{split}
+\end{equation}
+
+\begin{equation}
+  \begin{split}
+    V_{eff}^{(3)} &= \langle r_0(\rho) \lvert V(\rho,z) \lvert r_2(\rho) \rangle \\
+    &= -\frac{l^2\sigma^2 e^{\frac{-z^2}{2\sigma^2}}}{(l^2+\sigma^2)^3} \left[-v_1 z^2\left(\sigma^2 + l^2\right) \right.\\
+    &\left.+ v_2 \left(\sigma^2 + l^2\right) + 2v_1\sigma^2 \left(\sigma^2 - l^2 \right) \right]
+  \end{split}
+\end{equation}
 
 \noindent where $l = \frac{\hbar}{2 m_e \omega} = \frac{1}{\sqrt{2}\beta}$.
 
@@ -100,7 +135,7 @@ To sum up, the effective one-dimensional Hamiltonian of the system is
 \end{equation}
 \noindent we can deduce the following relation
 \begin{equation}
-  v_1\left(\sigma^4 + 2\, l^2 \sigma^2\right) - v_2\left(\sigma^2 + l^2\right)<0\,.
+  Estoy\, hay\, que\, recalcular
 \end{equation}
 
 \section*{Quasi 1D problem (lateral confinement), two particle case}
