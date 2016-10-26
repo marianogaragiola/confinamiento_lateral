@@ -59,8 +59,12 @@ def V_potencial_pozo_rho(r0, x):
 #############################
 
 ## Defino el potencial del pozo en la coordenada z
-def V_potencial_pozo_z(v1, v2, z1, z2, x):
-	U = np.piecewise(x, [x<-z2, (-z2<=x)&(x<-z1), (-z1<=x)&(x<=z1), (z1<x)&(x<=z2), z2<x], [0, v1, -v2, v1, 0]);
+def V_potencial_pozo_z1(z1, x):
+	U = np.piecewise(x, [x<-z1, (-z1<=x)&(x<z1), z1<x], [0, 1, 0]);
+	return U
+
+def V_potencial_pozo_z2(z1, z2, x):
+	U = np.piecewise(x, [x<-z2, (-z2<=x)&(x<-z1), (-z1<=x)&(x<=z1), (z1<x)&(x<=z2), z2<x], [0, 1, 0, 1, 0]);
 	return U
 #############################
 
@@ -82,10 +86,10 @@ a0 = 0.0529177210; eV = 27.21138564; c_light = 137.035999074492; ua_to_T = 1.72e
 me		 = 0.041; #0.063; ## Masa de la particula
 mz		 = 0.0; ## Componente z del momento angular
 r0		 = 7.0; ## Ancho del pozo en rho
-az		 = 10.0;
+az		 = 7.0;
 bz		 = 2.5;
 v1		 = 0.37; ## Alto de la barrera
-v2		 = 0.004; ## Profundidad del pozo
+v2		 = 0.108844; ## Profundidad del pozo
 B_i		 = 0.0;
 B_f 	 = 30.0;
 
@@ -93,7 +97,7 @@ bcampo_vec = np.linspace(B_i, B_f, 30);
 
 ## Separo las coordenadas y tomo distinta base en r y en z
 Rmin = 0.0;
-Rmax = 100.0;
+Rmax = 50.0;
 
 Zmax = 1000.0;
 Zmin = -Zmax;
@@ -222,13 +226,19 @@ Vr = np.dot(np.transpose(bsr), (np.transpose(r_nodos2*Ur*wr_pesos)*bsr));
 Vr = np.array([[Vr[i][j] for i in range(N_splines_r-1)] for j in range(N_splines_r-1)]);
 
 # Segundo en la coordenada z
-Uz = V_potencial_pozo_z(v1, v2, 0.5*az, 0.5*(az+bz), z_nodos)
+Uz = V_potencial_pozo_z1(0.5*az, z_nodos)
 Uz = np.tile(Uz, (N_splines_z, 1))
 
-Vz = np.dot(np.transpose(bsz), (np.transpose(Uz*wz_pesos)*bsz));
-Vz = np.array([[Vz[i][j] for i in range(1, N_splines_z-1)] for j in range(1, N_splines_z-1)]);
+Vz1 = np.dot(np.transpose(bsz), (np.transpose(Uz*wz_pesos)*bsz));
+Vz1 = np.array([[Vz1[i][j] for i in range(1, N_splines_z-1)] for j in range(1, N_splines_z-1)]);
 
-V = np.kron(Vr, Vz)
+Uz = V_potencial_pozo_z2(0.5*az, 0.5*(az+bz), z_nodos)
+Uz = np.tile(Uz, (N_splines_z, 1))
+
+Vz2 = np.dot(np.transpose(bsz), (np.transpose(Uz*wz_pesos)*bsz));
+Vz2 = np.array([[Vz2[i][j] for i in range(1, N_splines_z-1)] for j in range(1, N_splines_z-1)]);
+
+V = -v2*np.kron(Vr, Vz1) + v1*np.kron(Vr, Vz2)
 
 ## Calculo los autovalores y autovectores
 auval = np.zeros(N_dim);

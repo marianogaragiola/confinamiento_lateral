@@ -20,7 +20,7 @@
 #######################################################################
 #######################################################################
 import numpy as np
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 from scipy import linalg as LA
 from bspline import Bspline
 from sys import exit
@@ -58,9 +58,9 @@ alpha = 658.4092645439;
 me		 = 0.063; ## Masa de la particula
 sigma	 = 10.0; ## Ancho del pozo gaussiano en nm
 v1		 = 0.0042; ## Parametro del pozo en eV/nm^2
-v2		 = 0.2; ## Intensidad de campo magnetico en teslas
+v2		 = 0.1; ## Intensidad de campo magnetico en teslas
 
-c_rho = np.sqrt(0.5)
+c_rho = 0.1
 
 bcampo_vec = np.linspace(1.0, 200.0, 398);
 
@@ -84,8 +84,12 @@ if nev > N_dim:
 	print "nev > N_dim, cambiar el valor de nev"
 	exit(0)
 
-archivo1 = "./resultados1410/E_vs_B-v1_%6.4feVsnm2-v2_%6.4feV-sigma_%6.4f-Zmax_%6.4f.dat" % (v1, v2, sigma, Zmax)
-archivo2 = "./resultados1410/z_vs_B-v1_%6.4feVsnm2-v2_%6.4feV-sigma_%6.4f-Zmax_%6.4f.dat" % (v1, v2, sigma, Zmax)
+if c_rho > 1:
+	print "c_rho > 1, cambiar el valor de c_rho por algo menor que 1"
+	exit(0)
+
+archivo1 = "./resultados1710/E_vs_B-v1_%6.4feVsnm2-v2_%6.4feV-sigma_%6.4f-Zmax_%6.4f-crho_%6.4f.dat" % (v1, v2, sigma, Zmax, c_rho)
+archivo2 = "./resultados1710/z_vs_B-v1_%6.4feVsnm2-v2_%6.4feV-sigma_%6.4f-Zmax_%6.4f-crho_%6.4f.dat" % (v1, v2, sigma, Zmax, c_rho)
 
 f1 = open(archivo1, 'w')
 f2 = open(archivo2, 'w')
@@ -198,10 +202,10 @@ for bcampo in bcampo_vec:
 	f1.write("\n")
 	f2.write("\n")
 
-for i in range(6):
-	plt.plot(bcampo_vec, auval[1:,i])
-
-plt.show()
+# for i in range(6):
+# 	plt.plot(bcampo_vec, auval[1:,i])
+#
+# plt.show()
 
 f1.close()
 f2.close()
