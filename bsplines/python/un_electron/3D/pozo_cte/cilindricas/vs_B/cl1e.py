@@ -91,7 +91,7 @@ bz		 = 2.5;
 v1		 = 0.37; ## Alto de la barrera
 v2		 = 0.108844; ## Profundidad del pozo
 B_i		 = 0.0;
-B_f 	 = 30.0;
+B_f 	 = 50.0;
 
 bcampo_vec = np.linspace(B_i, B_f, 150);
 
@@ -112,24 +112,26 @@ N_base_r = N_splines_r - 1; N_base_z = N_splines_z - 2;
 
 N_dim = N_base_r*N_base_z; # Tamano de las matrices
 
-archivo = "./resultados/E_vs_B-v1%6.4feV-v2%6.4feV-Bi%3.1f-Bf%3.1f.dat" % (v1, v2, B_i, B_f)
+archivo1 = "./resultados/E_vs_B-v1%6.4feV-v2%6.4feV-Bi%3.1f-Bf%3.1f.dat" % (v1, v2, B_i, B_f)
+archivo2 = "./resultados/z_vs_B-v1%6.4feV-v2%6.4feV-Bi%3.1f-Bf%3.1f.dat" % (v1, v2, B_i, B_f)
 
-f = open(archivo, 'w')
-f.write("# Intervalo de integracion en r [{0}, {1}]\n".format(Rmin, Rmax))
-f.write("# Intervalo de integracion en z [{0}, {1}]\n".format(Zmin, Zmax))
-f.write("# Grado de los B-splines {0}\n".format(grado))
-f.write("# Num de intervalos {0} y tamano de base {1} en r\n".format(N_intervalos_r, N_base_r))
-f.write("# Num de intervalos {0} y tamano de base {1} en z\n".format(N_intervalos_z, N_base_z))
-f.write("# Dimension total del espacio N_dim = N_base_r*N_base_z = {0}\n".format(N_dim))
-f.write("# Cte de separacion de knots en dist exp beta = {0}\n".format(beta))
-f.write("# Orden de la cuadratura N_cuad = {0}\n".format(N_cuad))
-f.write("# Masa de la particula me = {0} en UA\n".format(me))
-f.write("# Componente z del momento angular mz = {0}\n".format(mz))
-f.write("# Ancho del pozo en rho rho_0 = {0} en nm\n".format(r0))
-f.write("# Parametros del pozo az = {0} nm y bz = {1} nm\n".format(az, bz))
-f.write("# Altura de la barrera v1 = {0} en eV\n".format(v1))
-f.write("# Profundidad del pozo v2 = {0} en eV\n".format(v2))
-f.write("# Autovalores calculados\n")
+f1 = open(archivo1, 'w')
+f2 = open(archivo2, 'w')
+f1.write("# Intervalo de integracion en r [{0}, {1}]\n".format(Rmin, Rmax))
+f1.write("# Intervalo de integracion en z [{0}, {1}]\n".format(Zmin, Zmax))
+f1.write("# Grado de los B-splines {0}\n".format(grado))
+f1.write("# Num de intervalos {0} y tamano de base {1} en r\n".format(N_intervalos_r, N_base_r))
+f1.write("# Num de intervalos {0} y tamano de base {1} en z\n".format(N_intervalos_z, N_base_z))
+f1.write("# Dimension total del espacio N_dim = N_base_r*N_base_z = {0}\n".format(N_dim))
+f1.write("# Cte de separacion de knots en dist exp beta = {0}\n".format(beta))
+f1.write("# Orden de la cuadratura N_cuad = {0}\n".format(N_cuad))
+f1.write("# Masa de la particula me = {0} en UA\n".format(me))
+f1.write("# Componente z del momento angular mz = {0}\n".format(mz))
+f1.write("# Ancho del pozo en rho rho_0 = {0} en nm\n".format(r0))
+f1.write("# Parametros del pozo az = {0} nm y bz = {1} nm\n".format(az, bz))
+f1.write("# Altura de la barrera v1 = {0} en eV\n".format(v1))
+f1.write("# Profundidad del pozo v2 = {0} en eV\n".format(v2))
+f1.write("# Autovalores calculados\n")
 
 ## Paso a unidades atomicas
 Zmax = Zmax/a0; Zmin = Zmin/a0;
@@ -169,7 +171,7 @@ for i in range(N_intervalos_z+1):
 	wz_pesos = np.hstack((wz_pesos, aux_w));
 
 wz_pesos = np.tile(wz_pesos, (N_splines_z, 1));
-# z_nodos2 = np.tile(z_nodos, (N_splines_z, 1));
+z_nodos2 = np.tile(z_nodos, (N_splines_z, 1));
 
 
 ## B-splines en la coordenada r
@@ -184,6 +186,14 @@ basis = Bspline(knots_z, grado);
 bsz  = [basis._Bspline__basis(i, basis.p) for i in z_nodos]; # evaluo los bsplines
 dbsz = [basis.d(i) for i in z_nodos];                        # evaluo las derivadas de los bsplines
 
+### Matrices para el elemento de matriz de z ###
+r_mat = np.dot(np.transpose(bsr), (np.transpose(r_nodos2)*np.transpose(wr_pesos)*bsr));
+r_mat = np.array([[r_mat[i][j] for i in range(N_splines_r-1)] for j in range(N_splines_r-1)]);
+
+z_mat = np.dot(np.transpose(bsz), (np.transpose(z_nodos2*wz_pesos)*bsz));
+z_mat = np.array([[z_mat[i][j] for i in range(1, N_splines_z-1)] for j in range(1, N_splines_z-1)]);
+
+rz_mat = np.kron(r_mat, z_mat)
 
 ## Matriz de solapamiento en r
 Sr = np.dot(np.transpose(bsr), (np.transpose(r_nodos2)*np.transpose(wr_pesos)*bsr));
@@ -258,11 +268,15 @@ for bcampo in bcampo_vec:
 
 	auval = np.vstack((auval, e));
 
-	f.write("{:22.15e}   ".format(bcampo))
-	for i in range(50):
-		f.write("{:22.15e}   ".format(e[i]))
+	z_exp = np.dot(np.transpose(auvec), np.dot(rz_mat, auvec))
 
-	f.write("\n")
+	f1.write("{:22.15e}   ".format(bcampo))
+	f2.write("{:22.15e}   ".format(bcampo))
+	for i in range(50):
+		f1.write("{:22.15e}   ".format(e[i]))
+		f2.write("{:22.15e}   ".format(z_exp[i,0]))
+
+	f1.write("\n")
 
 for i in range(5):
 	plt.plot(bcampo_vec, auval[1:,i])
@@ -272,4 +286,5 @@ slope_ll = eV/(me*c_light*ua_to_T);
 plt.plot(bcampo_vec, 0.5*slope_ll*bcampo_vec)
 plt.show()
 
-f.close()
+f1.close()
+f2.close()
