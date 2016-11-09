@@ -23,7 +23,7 @@ for i = 1:6
 
   lcampo = sqrt(0.5/(me*omega))*a0;
 
-  phi = 1/lcampo^2*exp(-r.^2/(4*lcampo^2));
+  phi = 1/lcampo*exp(-r.^2/(4*lcampo^2));
   phi = r.*phi.^2;
 
   ll = [r, phi];

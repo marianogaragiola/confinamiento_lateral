@@ -90,10 +90,10 @@ az		 = 7.0;
 bz		 = 2.5;
 v1		 = 0.37; ## Alto de la barrera
 v2		 = 0.108844; ## Profundidad del pozo
-B_i		 = 10.0;
-B_f 	 = 20.0;
+B_i		 = 22.0;
+B_f 	 = 30.0;
 
-bcampo_vec = np.linspace(B_i, B_f, 6);
+bcampo_vec = np.linspace(B_i, B_f, 5);
 
 ## Separo las coordenadas y tomo distinta base en r y en z
 Rmin = 0.0;
@@ -290,7 +290,7 @@ for bcampo in bcampo_vec:
 
 	rdm = np.dot(ge, np.dot(Sz, np.transpose(ge)))
 	rdm = np.dot(bsr2, np.dot(rdm, np.transpose(bsr2)))
-	rdm = r_nodos*np.diag(rdm)
+	rdm = r_nodos*np.diag(rdm)/a0
 
 	for i in range(np.size(r_nodos)):
 		f3.write('{0:22.15e}   {1:22.15e}\n'.format(a0*r_nodos[i], rdm[i]))
