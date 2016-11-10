@@ -162,10 +162,19 @@ ge = auvec[:,0]
 dge = np.dot(dbsr, ge)
 ge = np.dot(bsr, ge)
 
-ge = r_nodos*ge**2/a0
+# ge = r_nodos*ge**2 #/a0
+
+file1 = "ground_state.dat"
+file2 = "d_ground_state.dat"
+
+f3 = open(file1, 'w')
+f4 = open(file2, 'w')
+for i in range(np.size(r_nodos)):
+	f3.write("{0:22.15e}   {1:22.15e}\n".format(r_nodos[i], ge[i]))
+	f4.write("{0:22.15e}   {1:22.15e}\n".format(r_nodos[i], dge[i]))
 
 
-exit(0)
+# exit(0)
 
 
 for i in range(np.size(r_nodos)):
