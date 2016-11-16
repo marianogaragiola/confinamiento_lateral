@@ -57,11 +57,11 @@ bz		 = 2.5;
 v1		 = 0.37; ## Alto de la barrera
 v2		 = 0.108844; ## Profundidad del pozo
 delta	 = 0.1;
-eta		 = 0.0;
+eta		 = 0.1;
 B_i		 = 1.0;
 B_f 	 = 50.0;
 
-bcampo_vec = np.linspace(B_i, B_i, 1);
+bcampo_vec = np.linspace(B_i, B_f, 49);
 
 # Pendiente de los niveles de landau
 slope_ll = eV/(me*c_light*ua_to_T);
@@ -70,7 +70,7 @@ slope_ll = eV/(me*c_light*ua_to_T);
 Zmax = 1000.0;
 Zmin = -Zmax;
 
-N_intervalos_z = 10;
+N_intervalos_z = 35;
 N_cuad = 10;
 grado = 6;
 kord = grado + 1;
@@ -86,7 +86,7 @@ if nev > N_dim:
 	print "nev > N_dim, cambiar el valor de nev"
 	exit(0)
 
-archivo1 = "./resultados/E_vs_B-v1_%6.4feV-v2_%6.4feV-az_%6.4f-bz_%6.4f.dat" % (v1, v2, az, bz)
+archivo1 = "./resultados/E_vs_B-v1_%6.4feV-v2_%6.4feV-az_%6.4f-bz_%6.4f-eta_%6.4f.dat" % (v1, v2, az, bz, eta)
 
 f1 = open(archivo1, 'w')
 f1.write("# Intervalo de integracion en z [{0}, {1}]\n".format(Zmin, Zmax))
@@ -145,7 +145,6 @@ dbsz = dbsz[:,1:N_splines_z-1]
 
 # Llamo la funcion que calcula la matriz de la interaccion
 V_int = V_interaccion(z_nodos, w_pesos, delta, bsz)
-V_int = np.zeros(np.shape(V_int))
 
 
 ### Ahora paso a armar las matrices para el hamiltoniano de una particula
@@ -197,7 +196,7 @@ for bcampo in bcampo_vec:
 
 	f1.write("{:13.9e}   ".format(bcampo))
 	for i in range(nev):
-		f1.write("{:13.9e}   ".format(e[i]))
+		f1.write("{:13.9e}   ".format(e.real[i]))
 
 	f1.write("\n")
 
