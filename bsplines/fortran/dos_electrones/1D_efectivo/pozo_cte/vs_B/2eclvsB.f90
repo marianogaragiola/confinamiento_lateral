@@ -206,12 +206,6 @@ if( nev<0 ) nev = nb
 write(archivo1e, '("./resultados/1e-E_vs_B-v1_",f6.4,"eV-v2_",f6.4,"eV-az_",f6.4,"-bz_",f6.4,".dat")') v1, v2, az, bz
 write(archivo2e, '("./resultados/2e-E_vs_B-v1_",f6.4,"eV-v2_",f6.4,"eV-az_",f6.4,"-bz_",f6.4,"-eta_",f6.4,".dat")') v1, v2, az, bz&
 &, eta
-
-! paso el parametro del potencial a unidades atomicas
-zmin = zmin/a0; zmax = zmax/a0; delta = delta/a0;
-az = az/a0; bz = bz/a0; r0 = r0/a0
-V1 = V1/eV; V2 = V2/eV;
-
 !###########################################################
 !###########################################################
 !###########################################################
@@ -241,6 +235,11 @@ call flush();
 close(9)
 close(10)
 
+! paso el parametro del potencial a unidades atomicas
+zmin = zmin/a0; zmax = zmax/a0; delta = delta/a0;
+az = az/a0; bz = bz/a0; r0 = r0/a0
+V1 = V1/eV; V2 = V2/eV;
+
 allocate( Sp(kord))
 
 allocate( x(l_interval,intg), w(l_interval,intg), pl(l_interval,intg))
@@ -251,8 +250,7 @@ allocate( norma(nb), s(nb,nb), v01(nb,nb), ke(nb,nb))
 
 allocate( Vef(nb, nb, nb, nb))
 
-call  KNOTS_PESOS( kord, tip, gamma, zmin, zmax, c, l_interval, lum, intg, t, k, x, w, pl);
-
+call KNOTS_PESOS( kord, tip, gamma, zmin, zmax, c, l_interval, lum, intg, t, k, x, w, pl);
 
 delta_B = (B_campo_f-B_campo_i)/real(num_puntos_B-1, kind(0.d0));
 
@@ -389,7 +387,7 @@ do i1 = kord, kord+l_interval-1
               in = i2-kord+n-1
               if(in>0 .and. in<nb+1)then
 
-                 f(im,in) = Sp(m)*Sp(n)*w2/sqrt(delta**2 + (zz1-zz2)**2)
+                 f(im,in) = f(im,in) + Sp(m)*Sp(n)*w2/sqrt(delta**2 + (zz1-zz2)**2)
 
               end if
             end do
@@ -479,6 +477,7 @@ end do
 
 hsim = 0.d0; ms = 0.d0;
 
+
 !!! halmiltoniano de dos particulas ya simetrizado
 ind = 1
 do n = 1, dp
@@ -489,31 +488,31 @@ do n = 1, dp
 
         if(m.eq.n .and. mp.eq.np)then
 
-          hsim( ind, indp) = 2.d0*s(n,np)*mh(n,np) + dble(eta)*Vef(n,n,np,np);
-          ms( ind, indp) = s(n,np)*s(n,np);
-          mv( ind, indp) = Vef(n,n,np,np);
+          hsim(ind,indp) = 2.d0*s(n,np)*mh(n,np) + dble(eta)*Vef(n,n,np,np);
+          ms(ind,indp) = s(n,np)*s(n,np);
+          mv(ind,indp) = Vef(n,n,np,np);
 
         elseif(m.ne.n .and. mp.eq.np )then
 
-          hsim( ind, indp) = raiz*( 2.d0*s(m,np)*mh(n,np) + 2.d0*s(n,np)*mh(m,np) &
+          hsim(ind,indp) = raiz*( 2.d0*s(m,np)*mh(n,np) + 2.d0*s(n,np)*mh(m,np) &
                              & + dble(eta)*Vef(n,m,np,np) + dble(eta)*Vef(m,n,np,np) );
-          ms( ind, indp) = 2.d0*raiz*s(n,np)*s(m,np);
-          mv( ind, indp) = 2.d0*raiz*(Vef(n,m,np,np) + Vef(m,n,np,np));
+          ms(ind,indp) = 2.d0*raiz*s(n,np)*s(m,np);
+          mv(ind,indp) = 2.d0*raiz*(Vef(n,m,np,np) + Vef(m,n,np,np));
 
         elseif(m.eq.n .and. mp.ne.np)then
 
-          hsim( ind, indp) = raiz*( 2.d0*s(n,mp)*mh(n,np) + 2.d0*s(n,np)*mh(n,mp) &
+          hsim(ind,indp) = raiz*( 2.d0*s(n,mp)*mh(n,np) + 2.d0*s(n,np)*mh(n,mp) &
                              & + dble(eta)*Vef(n,n,np,mp) + dble(eta)*Vef(n,n,mp,np) );
-          ms( ind, indp) = 2.d0*raiz*s(n,np)*s(n,mp);
-          mv( ind, indp) = 2.d0*raiz*(Vef(n,n,np,mp) + Vef(n,n,mp,np));
+          ms(ind,indp) = 2.d0*raiz*s(n,np)*s(n,mp);
+          mv(ind,indp) = 2.d0*raiz*(Vef(n,n,np,mp) + Vef(n,n,mp,np));
 
         else
 
-          hsim( ind, indp) = s(n,np)*mh(m,mp) + s(n,mp)*mh(m,np) &
+          hsim(ind,indp) = s(n,np)*mh(m,mp) + s(n,mp)*mh(m,np) &
                           &+ s(m,mp)*mh(n,np) + s(m,np)*mh(n,mp) &
                           &+ 0.5d0*dble(eta)*(Vef(n,m,np,mp) + Vef(n,m,mp,np) + Vef(m,n,np,mp) + Vef(m,n,mp,np));
-          ms( ind, indp) = s(n,np)*s(m,mp) + s(n,mp)*s(m,np);
-          mv( ind, indp) = 0.5d0*(Vef(n,m,np,mp) + Vef(n,m,mp,np) + Vef(m,n,np,mp) + Vef(m,n,mp,np));
+          ms(ind,indp) = s(n,np)*s(m,mp) + s(n,mp)*s(m,np);
+          mv(ind,indp) = 0.5d0*(Vef(n,m,np,mp) + Vef(n,m,mp,np) + Vef(m,n,np,mp) + Vef(m,n,mp,np));
 
         endif
         indp = indp + 1

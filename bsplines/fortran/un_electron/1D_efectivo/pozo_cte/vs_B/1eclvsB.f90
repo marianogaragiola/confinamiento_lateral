@@ -1,32 +1,27 @@
-! Nombre del archivo 2eclvslambda.f90 que significa Dos Electrones Confinamiento Lateral
-! vs lambda.
+! Codigo que calcula los autovalores y autovectores del hamiltoniano
+! efectio 1D para un electron.
 !
-! Codigo que calculos los autovalores de dos electrones en un pozo con forma gaussiana.
+! El hamiltoniano del sistema es
 !
-! El potencial es de la forma V(z) = -V0*exp(-(z-z0)**2/(2*sigma**2))
-! Los parametros del pozo son los siguiente:
-! V0     ---> profundidad del pozo.
-! sigma  ---> ancho del pozo.
-! z0     ---> es donde estan centrado el pozo.
-! Estos parametros son parametros de entrada.
+!   Hz = -hbar^2/(2*me)*d^2/dz^2 + V_{ef}(z) + Hr*S
 !
-! Se condiera la interaccion electromagnetica entre los electrones en el potencial Vef(z1, z2)
-! Hay un parametro "l" en las notas del Fede que en el codigo lo llame "ll" para que no tenga
-! problema con el numero de intervalos para los knots.
+! El potencial de confinamiento efectivo es
 !
-! El codigo calcula los autovalores para el estado singlete (espin antiparalelo) por lo tanto
-! las funcion de onda espacial es simetrica. Una vez calculado el hamiltoniano en la base producto
-! hace una simetrizacion, se reduce el tamaño de la matriz.
+!                 v1    if abs(z)<=0.5*az
+!   V_{ef}(z) =  -v2*vr if 0.5*az<=abs(z)<=0.5*(az+bz)
+!                 0     other cases
 !
-! El codigo usa B-splines para calcular el hamiltoniano y luega calcula los
-! autovalores y autovectores que elija.
+! Hr es el valor de expectacion del hamiltoniano radial del 
+! problema usando como funcion de onda el estado fundamental del pozo
 !
-! El intervalo de integracion es [zmin, zmax].
-! Ya que el potencial es simetrico respecto a z=0 voy a tomar a zmin = -zmax.
+! La matriz del hamiltoniano la calculo usando como base
+! del espacio los B-splines. El problema de autovalores es un
+! problema generalizado
 !
-! El codigo va variando la variable lambda, por lo tanto devuelve los autovalores como
-! funcion de lambda. lambda representa la intesidad del potencial Vef
+!     H*c = E*S*c
 !
+! Guardo, los autovalores del hamiltoniano en funcion del
+! campo magnetico aplicado.
 ! Algunos comentarios sobre unidades y campo magnetico.
 ! La cte alpha sirve para determinar el parametro l del potencial efectivo en funcion del
 ! campo magnetico, la relacion es:
@@ -41,19 +36,11 @@
 
 !!!!!!!!!!!!!!!!!!!!!! preprocessing variable !!!!!!!
 #ifndef zmin_
-#define zmin_  0.d0
+#define zmin_  0._pr
 #endif
 
 #ifndef zmax_
-#define zmax_ 10.d0
-#endif
-
-#ifndef z0_
-#define z0_ 0.d0
-#endif
-
-#ifndef sigma_
-#define sigma_ 1.d0
+#define zmax_ 10._pr
 #endif
 
 #ifndef lum_
@@ -61,19 +48,19 @@
 #endif
 
 #ifndef c_
-#define c_ 0.d0
+#define c_ 0._pr
 #endif
 
 #ifndef gamma_
-#define gamma_ 0.d0
+#define gamma_ 0._pr
 #endif
 
 #ifndef kord_
 #define kord_ 5
 #endif
 
-#ifndef l_
-#define l_ 100
+#ifndef l_interval_
+#define l_interval_ 100
 #endif
 
 #ifndef intg_
@@ -84,262 +71,206 @@
 #define nev_ 10
 #endif
 
-#ifndef V0_
-#define V0_ 1.d0
+#ifndef V1_
+#define V1_ 1._pr
 #endif
 
-#ifndef lambdai_
-#define lambdai_ 0.1d0
+#ifndef V2_
+#define V2_ 1._pr
 #endif
 
-#ifndef lambdaf_
-#define lambdaf_ 1.d0
+#ifndef r0_
+#define r0_ 1._pr
 #endif
 
-#ifndef num_puntos_lambda_
-#define num_puntos_lambda_ 10
+#ifndef az_
+#define az_ 1._pr
+#endif
+
+#ifndef bz_
+#define bz_ 1._pr
+#endif
+
+#ifndef B_campo_i_
+#define B_campo_i_ 0.1_pr
+#endif
+
+#ifndef B_campo_f_
+#define B_campo_f_ 1._pr
+#endif
+
+#ifndef num_puntos_B_
+#define num_puntos_B_ 10
 #endif
 
 #ifndef me_
-#define me_ 1.d0
+#define me_ 1._pr
 #endif
 
-#ifndef B_campo_
-#define B_campo_ 1.d0
-#endif
 !!!!!!!!!!!!!!!!!!!!!! MODULES !!!!!!!!!!!!!!!!!!!!!!!
+module precision
+implicit none
+integer, parameter :: pr = selected_real_kind(15,307)
+end module
 
 module carga
-integer :: kord, lum, intg, nev, num_puntos_lambda
-real(8) :: zmin, zmax, V0, sigma, lambda, lambdai, lambdaf, z0
-real(8) :: me, B_campo, delta, c, gamma, ll
-integer :: l
+use precision
+implicit none
+integer :: kord, lum, intg, nev, num_puntos_B
+real(pr) :: zmin, zmax, v1, v2, sigma, B_campo_i, B_campo_f
+real(pr) :: az, bz, r0
+real(pr) :: me, B_campo, delta_B, c, gamma, l_campo
+real(pr) :: Tr, Ur, Vr, Hr, omega
+integer :: l_interval
 character(1) :: tip, B1, B2
 end module  carga
 
 module matrices
+use precision
+implicit none
 integer :: nk, nb
-real(8), allocatable, dimension(:) :: norma
-real(8), allocatable, dimension(:,:) :: s, v01, ke
-real(8), allocatable, dimension(:,:,:,:) :: Vef
-! integer, allocatable, dimension(:,:) :: ist, irt, tri
+real(pr), allocatable, dimension(:) :: norma
+real(pr), allocatable, dimension(:,:) :: s, v01, v02, ke
 end module matrices
 
 module integracion
+use precision
+implicit none
 integer, allocatable, dimension(:) :: k
-real(8), allocatable, dimension(:) :: t, sp
-real(8), allocatable, dimension(:,:) :: x, w, pl
+real(pr), allocatable, dimension(:) :: t, sp !, dsp
+real(pr), allocatable, dimension(:,:) :: x, w, pl
 end module  integracion
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!   MAIN !!!!!!!!!!!!!!!!!!!!!!!!!
 program Bsplines
+use precision
 use carga
 use matrices
 use integracion
 implicit none
-integer :: i, j
-real(8), parameter :: alpha = 658.4092645439d0, a0 = 0.0529177210d0, eV = 27.21138564d0
-real(8) :: time
-character(150) :: archivo1e, archivo2e
-character(1) :: z1, z2, z3, z4, l1, l2, l3
+integer :: i, j, ind_B, tipo
+real(pr), parameter :: alpha = 658.4092645439_pr, a0 = 0.0529177210_pr, eV = 27.21138564_pr
+real(pr), parameter :: c_light = 137.035999074492_pr, ua_to_T = 1.72d3
+real(pr) :: time
+character(150) :: archivo1e
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-zmin = zmin_; zmax = zmax_ ! valores de inicio y final del intervalo de integracion
+zmin = real(zmin_, pr); zmax = real(zmax_, pr) ! valores de inicio y final del intervalo de integracion
 
-z0 = z0_ ! centro del pozo
-
-sigma = sigma_ ! ancho del pozo.
-
-tip = 'e' ! tipo de distribucion de knots, u, e, m
+tip = 'u'; tipo = 1 ! tipo de distribucion de knots, u, e, m
 
 lum = lum_ ! # de intervalors u en m
 
-c = c_ ! parametod en m dist u en [a,c] y e en (c,b]
+c = real(c_, pr) ! parametod en m dist u en [a,c] y e en (c,b]
 
-gamma = gamma_ ! parametro de la exponencial
-gamma = gamma/a0;
+gamma = real(gamma_, pr) ! parametro de la exponencial
 
 kord = kord_ ! orden de los B-splines
 
-l = l_ ! # de intervalos
+l_interval = l_interval_ ! # de intervalos
 
 intg = intg_ ! grado de la intregracion de cuadratura gaussiana, >=k
 
 nev = nev_ ! # de autovalores que queremos calculara
 
-V0 = V0_ ! profundidad del pozo en eV
+v1 = real(V1_, pr) ! profundidad del pozo en eV
 
-lambdai = lambdai_; lambdaf = lambdaf_
+v2 = real(V2_, pr)
 
-num_puntos_lambda = num_puntos_lambda_
+az = real(az_, pr); bz = real(bz_, pr); r0 = real(r0_, pr);
 
-me = me_ ! en unidades atomicas
+B_campo_i = real(B_campo_i_, pr); B_campo_f = real(B_campo_f_, pr)
 
-B_campo = B_campo_ ! en Tesla
+num_puntos_B = num_puntos_B_
+
+me = real(me_, pr) ! en unidades atomicas
 
 if( intg<kord ) intg = kord
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-nk = l+2*kord-1   ! # de knots
+nk = l_interval+2*kord-1   ! # de knots
 ! No incluimos primer   y ultimo spline debido a psi(0)=psi(R)=0
-nb = kord+l-3      ! size base splines
+nb = kord+l_interval-3      ! size base splines
 if( nev<0 ) nev = nb
 
-! calculo el parametro del potencial efectivo en nm
-ll = sqrt(2.d0*alpha/B_campo);
-
-V0 = V0/(1.d0+ll**2/(2.d0*sigma**2));
-
-! paso el parametro del potencial a unidades atomicas
-ll = ll/a0; z0 = z0/a0; zmin = zmin/a0; zmax = zmax/a0; sigma = sigma/a0;
-gamma = gamma/a0;
-
-V0 = V0/eV; ! paso a unidades atomicas el pozo
-
-B1 = char(modulo(int(B_campo), 10) + 48);
-B2 = char(modulo(int(B_campo), 100)/10 + 48);
-
-z1 = char(modulo(int(a0*zmax), 10) + 48);
-z2 = char(modulo(int(a0*zmax), 100)/10 + 48); 
-z3 = char(modulo(int(a0*zmax), 1000)/100 + 48);
-z4 = char(modulo(int(a0*zmax), 10000)/1000 + 48);
-
-l1 = char(modulo(int(l), 10) + 48);
-l2 = char(modulo(int(l), 100)/10 + 48);
-l3 = char(modulo(int(l), 1000)/100 + 48);
-
+write(archivo1e, '("./resultados/1e-E_vs_B-v1_",f6.4,"eV-v2_",f6.4,"eV-az_",f6.4,"-bz_",f6.4,".dat")') v1, v2, az, bz
 !###########################################################
 !###########################################################
 !###########################################################
-archivo1e = './resultados/B'//B2//B1//'T/1e-E_vs_lambda-B'//B2//B1//'T-zmax'//z4//z3//z2//z1//'-l'//l3//l2//l1//'.dat';
-archivo2e = './resultados/B'//B2//B1//'T/2e-E_vs_lambda-B'//B2//B1//'T-zmax'//z4//z3//z2//z1//'-l'//l3//l2//l1//'.dat';
-open(9, file=archivo2e)
 open(10, file=archivo1e)
 !###########################################################
 !###########################################################
-write(9,*) '# Codigo que calculos los autovalores de dos electrones'
-write(9,*) '# en un pozo con forma gaussiana.'
-
-write(9,*) '# El potencial es de la forma V(z) = -V0*exp(-(z-z0)**2/(2*sigma**2))'
-write(9,*) '# Los parametros del pozo son los siguiente:'
-write(9,*) '# V0    ---> profundidad del pozo.'
-write(9,*) '# sigma ---> ancho del pozo.'
-write(9,*) '# z0    ---> es donde estan centrado el pozo.'
-write(9,*) '# Estos parametros son parametros de entrada.'
-
-write(9,*) '# Se condiera la interaccion electromagnetica entre los'
-write(9,*) '# electrones en el potencial Vef(z1, z2)'
-write(9,*) '# Hay un parametro "l" en las notas del Fede que en el'
-write(9,*) '# codigo lo llame "ll" para que no tenga'
-write(9,*) '# problema con el numero de intervalos para los knots.'
-
-write(9,*) '# El codigo calcula los autovalores para el estado'
-write(9,*) '# singlete (espin antiparalelo) por lo tanto '
-write(9,*) '# las funcion de onda espacial es simetrica.'
-write(9,*) '# Una vez calculado el hamiltoniano en la base producto'
-write(9,*) '# hace una simetrizacion, se reduce el tamaño de la matriz.'
-
-write(9,*) '# El codigo usa B-splines para calcular el hamiltoniano y'
-write(9,*) '# calcula los autovalores y autovectores que elija.'
-
-write(9,*) '# El intervalo de integracion es [zmin, zmax].'
-write(9,*) '# El potencial es simetrico respecto a z=0 tomo a zmin = -zmax.'
-
-write(9,*) '# El codigo va variando la variable lambda, devuelve los autovalores como'
-write(9,*) '# funcion de lambda. lambda representa la intesidad del potencial Vef'
-
-write(9,*) '# tip: entrar el tipo de distribucion, u, e, m'
-write(9,*) '# tip =', tip
-
-write(9,*) '# lum: entrar el # de intervalos u en m'
-write(9,*) '# lum =', lum
-
-write(9,*) '# c: parametro en m dist u en [a,c] y e en (c,b]'
-write(9,*) '# c =', c
-
-write(9,*) '# gamma: parametro en exponencial'
-write(9,*) '# gamma =', gamma
-
-write(9,*) '# kord: orden de los b-splines'
-write(9,*) '# kord =', kord
-
-write(9,*) '# l: # de intervalos'
-write(9,*) '# l =', l
-
-write(9,*) '# nb: tamaño base'
-write(9,*) '# nb =', nb
-
-write(9,*) '# intg: grado de integracion de la cuadratura >= k'
-write(9,*) '# intg =', intg
-
-write(9,*) '# nev: # de autovalores a calcular <=nb'
-write(9,*) '# nev =', nev
-
-write(9,*) '# intervalo de integracion'
-write(9,*) '# zmin =', zmin*a0, 'zmax =', zmax*a0
-
-write(9,*) '# centro del pozo:'
-write(9,*) '# z0 =', z0*a0
-
-write(9,*) '# profundidad del pozo en eV =', V0*eV*(1.d0+ll**2/(2.d0*sigma**2))
-
-write(9,*) '# profundidad del pozo modificada en eV =', V0*eV
-
-write(9,*) '# rango de valores de lambda='
-write(9,*) '# lambdai =', lambdai, 'lambdaf =', lambdaf
-
-write(9,*) '# ancho del pozo:'
-write(9,*) '# sigma =', sigma*a0
-
-write(9,*) '# masa de electron me =', me, 'unidades atomicas'
-
-write(9,*) '# Intensidad del campo magnetico en teslas =', B_campo
-
-write(9,*) '# Parametro l del campo efectivo en nm =', ll*a0
-
-write(9,*) '# autovalores calculados'
+write(10,'(A28,f8.2,A1,f8.2,A4)') "# Intervalo de integracion:[", zmin,",", zmax, "] nm"
+write(10,'(A32,x,I2,x,A33)') "# Tipo de distribucion de knots:", tipo, "(1 es uniforme, 2 es exponencial)"
+write(10,'(A47,x,f8.6)') "# Cte de decaimiento en distribucion exp gamma =", gamma
+write(10,'(A30,x,I2)') "# Orden de los bsplines kord =", kord
+write(10,'(A19,x,I3,x,A24,x,I3)') "# Num de intervalos", l_interval, ", grado de la cuadratura", intg
+write(10,'(A14,x,I3,x,A24,x,I3)') "# Num de knost", nk, ", tamaño de la base nb =", nb
+write(10,'(A33,x,f8.6,x,A2)') "# Masa efectiva del electron me =", me, "UA"
+write(10,'(A22,x,f6.4,x,A2)') "# Altura del pozo V1 =", v1, "eV"
+write(10,'(A27,x,f6.4,x,A2)') "# Profundidad del pozo V2 =", v2, "eV"
+write(10,'(A22,x,f6.4,x,A9,x,f6.4,x,A2)') "# Radios del pozo az =", az, "nm y bz =", bz, "nm"
+write(10,'(A27,x,f6.2,x,A19,x,f7.2)') "# Campo inicial b_campo_i =", b_campo_i, "y final b_campo_f =", b_campo_f
+write(10,'(A24)') "# Autovalores calculados"
+call flush();
 !###########################################################
 !###########################################################
 !###########################################################
-close(9)
 close(10)
 
-allocate( Sp(kord))
+! paso el parametro del potencial a unidades atomicas
+zmin = zmin/a0; zmax = zmax/a0;
+gamma = gamma/a0;
+az = az/a0; bz = bz/a0; r0 = r0/a0
+v1 = v1/eV; v2 = v2/eV;
 
-allocate( x(l,intg), w(l,intg), pl(l,intg))
+allocate(Sp(kord))
 
-allocate( t(nk), k(nk))
+allocate(x(l_interval,intg), w(l_interval,intg), pl(l_interval,intg))
 
-allocate( norma(nb), s(nb,nb), v01(nb,nb), ke(nb,nb))
+allocate(t(nk), k(nk))
 
-allocate( Vef(nb, nb, nb, nb))
+allocate(norma(nb), s(nb,nb), v01(nb,nb), v02(nb,nb), ke(nb,nb))
 
-call  KNOTS_PESOS( kord, tip, gamma, zmin, zmax, c, l, lum, intg, t, k, x, w, pl);
+call KNOTS_PESOS(kord, tip, gamma, zmin, zmax, c, l_interval, lum, intg, t, k, x, w, pl);
 
-do i = 1, nk
-  write(20,*) a0*t(i)
-end do
+delta_B = (B_campo_f-B_campo_i)/real(num_puntos_B-1, pr);
 
-call matrix_elements( );
-
-call interaccion( );
+call matrix_elements( )
 
 do i = 1,nb
   do j = i+1,nb
     s(j,i) = s(i,j)
     v01(j,i) = v01(i,j)
+    v02(j,i) = v02(i,j)
     ke(j,i) = ke(i,j)
   end do
 end do
 
-call sener(archivo1e, archivo2e);
+! OJO, ESTO SOLO VALE PARA r0 = 7nm
+Tr = 0.5_pr/me*9.74494d-5
+Ur = 0.5_pr*me*10677.5_pr
+Vr = 0.82604193_pr
+
+do ind_B = 1, num_puntos_B
+
+  B_campo = B_campo_i + real(ind_B-1, pr)*delta_B;
+
+  l_campo = sqrt(alpha/B_campo)/a0;
+  omega = 0.5*B_campo/(me*c_light*ua_to_T);  !! Frecuencia de oscilacion debida al campo
+
+  Hr = Tr + omega**2*Ur
+
+  call sener(archivo1e);
+
+end do
 
 deallocate(Sp, x, w, pl)
-deallocate(t, k, norma, s, v01, ke, Vef)
+deallocate(t, k, norma, s, v01, v02, ke)
 
 call cpu_time(time);
-write(*,*)time/60.d0
+write(*,*)time/60._pr
 
 end program !termina el main, termina el programa
 
@@ -348,16 +279,17 @@ end program !termina el main, termina el programa
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 subroutine matrix_elements( )
+use precision
 use carga
 use matrices
 use integracion
 implicit none
 integer :: i, j, m, n, im, in
-real(8) :: bm, bn, zz
+real(pr) :: bm, bn, zz
 
-s = 0.d0 ; v01 = 0.d0 ; ke = 0.d0
+s = 0._pr ; v01 = 0._pr; v02 = 0._pr; ke = 0._pr
 
-do i = kord, kord+l-1
+do i = kord, kord+l_interval-1
   do j = 1, intg
     zz = x(k(i),j)
     call bsplvb(t, kord, 1, zz, i, Sp)
@@ -371,7 +303,9 @@ do i = kord, kord+l-1
           if( in>0.and.in<nb+1 )then
             s(im,in) = s(im,in) + sp(m)*sp(n)*w(k(i),j)
 
-            v01(im,in) = v01(im,in) + w(k(i),j)*sp(m)*sp(n)*(-V0*exp(-(zz-z0)**2/(2.d0*sigma**2)) )
+            if(abs(zz)<=0.5*az) v02(im,in) = v02(im,in) + w(k(i),j)*sp(m)*sp(n)
+
+            if(0.5*az<abs(zz).and.abs(zz)<=0.5*(az+bz)) v01(im,in) = v01(im,in) + w(k(i),j)*sp(m)*sp(n)
 
           endif
         end do
@@ -380,7 +314,7 @@ do i = kord, kord+l-1
   end do
 end do
 
-do i = kord, kord+l-1
+do i = kord, kord+l_interval-1
   do m = i-kord+1, i
     if(m>1.and.m<nb+2)then
       do n = m,i
@@ -389,7 +323,7 @@ do i = kord, kord+l-1
 
             call bder(x(k(i),j), t, bm, bn, kord, nk, m, n, i)
 
-            ke(m-1,n-1) = ke(m-1,n-1) + 0.5d0*w(k(i),j)*bm*bn/me
+            ke(m-1,n-1) = ke(m-1,n-1) + 0.5_pr*w(k(i),j)*bm*bn/me
 
           end do
         endif
@@ -404,218 +338,64 @@ end subroutine matrix_elements
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-subroutine interaccion( )
-use carga
-use matrices
-use integracion
-implicit none
-integer :: i1, i2, j1, j2
-integer :: m, n, im, in, mp, imp, np
-real(8) :: pi, zz1, zz2, w1, w2, const, var, result
-real(8), allocatable, dimension(:,:) :: f
-real(8), parameter :: a0 = 0.0529177210d0
-
-allocate(f(nb, nb))
-
-pi = 2.d0*asin(1.d0);
-
-const = sqrt(pi/2.d0)*1.d0/ll;
-
-Vef = 0.d0;
-
-do i1 = kord, kord+l-1
-  do j1 = 1, intg
-    zz1 = x(k(i1), j1); w1 = w(k(i1), j1);
-
-    f = 0.d0;
-    do i2 = kord, kord+l-1
-      do j2 = 1, intg
-        zz2 = x(k(i2), j2); w2 = w(k(i2),j2);
-
-        var = abs(zz1-zz2)/(sqrt(2.d0)*ll);
-
-        call bsplvb(t, kord, 1, zz2, i2, Sp)
-
-        do m = 1, kord
-          im = i2-kord+m-1
-          if(im>0 .and. im<nb+1)then
-            do n = 1, kord
-              in = i2-kord+n-1
-              if(in>0 .and. in<nb+1)then
-
-                 if( var <= 5.d0) then
-                   f(im, in) = f(im, in) + Sp(m)*Sp(n)*w2*const*EXP(var**2)*(1.d0 - ERF(var));
-                 else
-                   ! f(im, in) = f(im, in) + Sp(m)*Sp(n)*w2*(1.d0/abs(zz1-zz2)-ll**2/abs(zz1-zz2)**3);
-                   f(im, in) = f(im, in) + Sp(m)*Sp(n)*w2/ll*(sqrt(0.5d0)/var - (sqrt(0.5d0)/var)**3);
-                 end if
-
-              end if
-            end do
-          end if
-        end do
-      end do
-    end do
-
-    Sp = 0.d0;
-    call bsplvb(t, kord, 1, zz1, i1, Sp)
-    do m = 1, kord
-      im = i1-kord+m-1
-      if(im>0 .and. im<nb+1) then
-        do mp = 1, kord
-          imp = i1-kord+mp-1;
-          if(imp>0 .and. imp<nb+1) then
-            do n = 1, nb
-              do np = 1, nb
-
-                Vef(im, n, imp, np) = Vef(im, n, imp, np) + Sp(m)*Sp(mp)*w1*f(n, np) !/dsqrt(s(n,n)*s(np,np));
-
-              end do
-            end do
-          end if
-        end do
-      end if
-    end do
-
-
-  end do
-end do
-
-deallocate(f)
-
-end subroutine interaccion
-
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 ! sener.f90 basado en ener.f90
 ! pero es una subroutine de exp_bs_gs.f90 para calcular el GS
 
 ! Calcula E_i de una matriz que se le pasa por mudule
 
-subroutine sener(archivo1e, archivo2e)
+subroutine sener(archivo1e)
+use precision
 use carga
 use matrices
 use integracion
 implicit none
-integer(4) :: i, j, m, n, mp, np, dp
-integer(4) :: info, ind, indp, NN
-real(8) :: raiz
-real(8), parameter :: eV = 27.21138564d0
-real(8), allocatable, dimension(:,:) :: auvec1, auvec2
-real(8), allocatable, dimension(:) :: e1, e2
-real(8), allocatable, dimension(:,:) :: mh, ms, mv, hsim
-real(8) :: ground_state
-character(150) :: archivo1e, archivo2e
-
-raiz = 1.d0/sqrt(2.d0);
+integer(4) :: m, n, dp
+integer(4) :: info
+real(pr), parameter :: eV = 27.21138564_pr
+real(pr), allocatable, dimension(:) :: e1
+real(pr), allocatable, dimension(:,:) :: mh, s_copy, auvec1
+character(150) :: archivo1e
 
 dp = nb
-NN = nb*(nb+1)/2
 
-allocate( e1(nev), e2(nev), auvec1(dp,nev), auvec2(NN,nev), mh(dp,dp))
-allocate( hsim(NN,NN), ms(NN,NN), mv(NN,NN))
+allocate(e1(nev), auvec1(dp,nev), mh(dp,dp), s_copy(dp,dp))
 
 !###########################################################
 !###########################################################
 !###########################################################
-open(11, file=archivo2e, position='append')
-open(12, file=archivo1e)
+open(12, file=archivo1e, position = 'append')
 !###########################################################
 !###########################################################
 !###########################################################
 
-mh = 0.d0
+mh = 0._pr
 
 !!! hamiltoniano de una particula
+s_copy = s;
 do m = 1, dp
   do n = 1, m
-    mh(m,n) = ke(m,n) + v01(m,n) ; mh(n,m) = mh(m,n)
+    mh(m,n) = ke(m,n) + v1*v01(m,n) - vr*v2*v02(m,n) + Hr*s(m,n)
+    mh(n,m) = mh(m,n)
   end do
 end do
 
-delta = (lambdaf-lambdai)/dble(num_puntos_lambda-1)
-
-do i = 1, num_puntos_lambda
-
-  lambda = lambdai + dble(i-1)*delta;
-
-  hsim = 0.d0; ms = 0.d0;
-
-  !!! halmiltoniano de dos particulas ya simetrizado
-  ind = 1
-  do n = 1, dp
-    do m = 1, n!n, dp
-      indp = 1
-      do np = 1, dp
-        do mp = 1, np !np, dp
-
-          if(m.eq.n .and. mp.eq.np)then
-
-            hsim( ind, indp) = 2.d0*s(n,np)*mh(n,np) + dble(lambda)*Vef(n,n,np,np);
-            ms( ind, indp) = s(n,np)*s(n,np);
-            mv( ind, indp) = Vef(n,n,np,np);
-
-          elseif(m.ne.n .and. mp.eq.np )then
-
-            hsim( ind, indp) = raiz*( 2.d0*s(m,np)*mh(n,np) + 2.d0*s(n,np)*mh(m,np) &
-                               & + dble(lambda)*Vef(n,m,np,np) + dble(lambda)*Vef(m,n,np,np) );
-            ms( ind, indp) = 2.d0*raiz*s(n,np)*s(m,np);
-            mv( ind, indp) = 2.d0*raiz*(Vef(n,m,np,np) + Vef(m,n,np,np));
-
-          elseif(m.eq.n .and. mp.ne.np)then
-
-            hsim( ind, indp) = raiz*( 2.d0*s(n,mp)*mh(n,np) + 2.d0*s(n,np)*mh(n,mp) &
-                               & + dble(lambda)*Vef(n,n,np,mp) + dble(lambda)*Vef(n,n,mp,np) );
-            ms( ind, indp) = 2.d0*raiz*s(n,np)*s(n,mp);
-            mv( ind, indp) = 2.d0*raiz*(Vef(n,n,np,mp) + Vef(n,n,mp,np));
-
-          else
-
-            hsim( ind, indp) = s(n,np)*mh(m,mp) + s(n,mp)*mh(m,np) &
-                            &+ s(m,mp)*mh(n,np) + s(m,np)*mh(n,mp) &
-                            &+ 0.5d0*dble(lambda)*(Vef(n,m,np,mp) + Vef(n,m,mp,np) + Vef(m,n,np,mp) + Vef(m,n,mp,np));
-            ms( ind, indp) = s(n,np)*s(m,mp) + s(n,mp)*s(m,np);
-            mv( ind, indp) = 0.5d0*(Vef(n,m,np,mp) + Vef(n,m,mp,np) + Vef(m,n,np,mp) + Vef(m,n,mp,np));
-
-          endif
-          indp = indp + 1
-        end do
-      end do
-      ind = ind + 1
-    end do
-  end do
-
-  if( NN.ne.(ind-1) ) stop
-  if( NN.ne.(indp-1) ) stop
-
-  call eigen_value( NN, nev, info, hsim, ms, e2, auvec2)
-
-  e2(:) = eV*e2(:);
-
-  !!!!!!!!!!!!!!!!!!!!!!!####################################
-  !!!!!!!!!!!!!!!!!!!!!!!####################################
-  !!!!!!!!!!!!!!!!!!!!!!!####################################
-  write(11,6) lambda, (e2(m), m = 1, 25)
-  !!!!!!!!!!!!!!!!!!!!!!!####################################
-  !!!!!!!!!!!!!!!!!!!!!!!####################################
-  !!!!!!!!!!!!!!!!!!!!!!!####################################
-  info = 0
-
-end do
-close(11)
-
-call eigen_value(dp, nev, info, mh, s, e1, auvec1);
+call eigen_value(dp, nev, info, mh, s_copy, e1, auvec1);
 e1(:) = eV*e1(:);
 
-write(12,6) lambdai, (e1(m), m = 1, 25)
-write(12,6) lambdaf, (e1(m), m = 1, 25)
+!!!!!!!!!!!!!!!!!!!!!!!####################################
+!!!!!!!!!!!!!!!!!!!!!!!####################################
+!!!!!!!!!!!!!!!!!!!!!!!####################################
+write(12,6) B_campo, (e1(m), m = 1, 25)
+!!!!!!!!!!!!!!!!!!!!!!!####################################
+!!!!!!!!!!!!!!!!!!!!!!!####################################
+!!!!!!!!!!!!!!!!!!!!!!!####################################
+info = 0
+
 close(12)
 
-deallocate(e1, e2, auvec1, auvec2, mh, ms, hsim, mv)
+deallocate(e1, auvec1, mh)
 
-6 format(e22.14,1x,1000(1x,e22.14))
+6 format(e22.15,1x,1000(1x,e22.15))
 
 return
 end subroutine sener
@@ -625,21 +405,20 @@ end subroutine sener
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 subroutine eigen_value(dp,nev,info,nh,s,x,avec)
-
+use precision
 !
 ! calcula usando LAPACK N=nev autovalores
-
 implicit none
 integer*4 dp,nev
-real(8),dimension (nev)::x
-real(8),dimension (dp,nev)::avec
-real(8),dimension (dp,dp)::nh,s
+real(pr),dimension (nev)::x
+real(pr),dimension (dp,nev)::avec
+real(pr),dimension (dp,dp)::nh,s
 ! definiciones para DSYGVX
 integer(4)::itype,numau,lwork,info,il,iu
 character(1)::jobz,range,uplo
-real(8)::vl,vu,abstol
-real(8),dimension(dp,dp)::z
-real(8),dimension(9*dp)::work
+real(pr)::vl,vu,abstol
+real(pr),dimension(dp,dp)::z
+real(pr),dimension(9*dp)::work
 integer(4),dimension(5*dp)::iwork
 integer(4),dimension(dp)::ifail
 
@@ -651,8 +430,8 @@ lwork=9*dp ! lwork=dim(work)
 itype=1  ! especifica que A x=lambda Bx
 jobz='V' ! V (N) (NO) calcula autovectores
 !range='V'! autovalores en el intervalo [VL,VU]
-!vl=-1.01d0 ! pongo  vl menor que el menor autovalor
-!vu=0.d0   ! por ahora solo interezan los autovalores negativos
+!vl=-1.01_pr ! pongo  vl menor que el menor autovalor
+!vu=0._pr   ! por ahora solo interezan los autovalores negativos
 uplo='U' ! la matriz es storeada superior
 ! N es dp
 !A es nh
@@ -854,14 +633,14 @@ SUBROUTINE KNOTS_PESOS(kord,tip,gamma,a,b,c,l,lum,intg,t,k,x,w,pl)
 ! pl(l,intg),w(l,intg) : polinomios de Legendre en cada punto
 ! NOTA II : los p_l los calcula gratis la subr gauleg de int. x cuad. del NR
 ! y a veces hacen falta=> version modif. de gauleg que los da como output
-
+use precision
 implicit none
 integer(4)::kord,l,lum,intg
 character(1)::tip
-real(8)::gamma,a,b,c
+real(pr)::gamma,a,b,c
 integer(4),dimension(l+2*kord-1)::k
-real(8),dimension(l+2*kord-1)::t
-real(8),dimension(l,intg)::x,w,pl
+real(pr),dimension(l+2*kord-1)::t
+real(pr),dimension(l,intg)::x,w,pl
 !!!!!!
 
 
@@ -883,25 +662,25 @@ end    SUBROUTINE KNOTS_PESOS
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-   SUBROUTINE DIST_UNIF(kord,a,b,l,intg,t,k,x,w,pl)
-
+SUBROUTINE DIST_UNIF(kord,a,b,l,intg,t,k,x,w,pl)
+use precision
 implicit none
 integer(4)::kord,l,intg
-real(8)::a,b
+real(pr)::a,b
 integer(4),dimension(l+2*kord-1)::k
-real(8),dimension(l+2*kord-1)::t
-real(8),dimension(l,intg)::x,w,pl
+real(pr),dimension(l+2*kord-1)::t
+real(pr),dimension(l,intg)::x,w,pl
 !!!!!!
 integer(4)::i,j,nk
-real(8)::ri,rf,dr
-real(8),dimension(intg)::vx,vw,vpl
+real(pr)::ri,rf,dr
+real(pr),dimension(intg)::vx,vw,vpl
 
 nk=l+2*kord-1   ! # de knots
 
 dr=(b-a)/dfloat(l)
 
 ! calcula los puntos y pesos para la cuadratura
-x=0.d0;w=0.d0
+x=0._pr;w=0._pr
 
 do i=1,l
 
@@ -938,37 +717,37 @@ end do
 
 return
 
-end    SUBROUTINE DIST_UNIF
+end SUBROUTINE DIST_UNIF
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 SUBROUTINE DIST_EXP(kord,gamma,a,b,l,intg,t,k,x,w,pl)
-
+use precision
 implicit none
 integer(4)::kord,l,intg
-real(8)::gamma,a,b
+real(pr)::gamma,a,b
 integer(4),dimension(l+2*kord-1)::k
-real(8),dimension(l+2*kord-1)::t
-real(8),dimension(l,intg)::x,w,pl
+real(pr),dimension(l+2*kord-1)::t
+real(pr),dimension(l,intg)::x,w,pl
 !!!!!!
 integer(4)::i,j,nk
-real(8)::ri,rf,dr,ye
-real(8),dimension(intg)::vx,vw,vpl
+real(pr)::ri,rf,dr,ye
+real(pr),dimension(intg)::vx,vw,vpl
 
 nk=l+2*kord-1   ! # de knots
 
-dr=(b-a)/(dexp(gamma)-1.d0)
+dr=(b-a)/(dexp(gamma)-1._pr)
 ye=gamma/dfloat(l)
 
 ! calcula los puntos y pesos para la cuadratura
-x=0.d0;w=0.d0
+x=0._pr;w=0._pr
 
 do i=1,l
 
-   ri=a+dr*(dexp(ye*dfloat(i-1))-1.d0)
-   rf=a+dr*(dexp(ye*dfloat(i))-1.d0)
+   ri=a+dr*(dexp(ye*dfloat(i-1))-1._pr)
+   rf=a+dr*(dexp(ye*dfloat(i))-1._pr)
 
    call gauleg_pl(ri,rf,vx,vw,vpl,intg)
 
@@ -989,7 +768,7 @@ do i=2,kord
 end do
 
 do i=kord+1,kord+l
-   t(i)=a+dr*(dexp(ye*dfloat(k(i-1)))-1.d0)
+   t(i)=a+dr*(dexp(ye*dfloat(k(i-1)))-1._pr)
    k(i)=k(i-1)+1
 end do
 
@@ -1006,20 +785,21 @@ end    SUBROUTINE DIST_EXP
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 SUBROUTINE DIST_MIX(kord,gamma,a,b,c,l,lum,intg,t,k,x,w,pl)
+use precision
 implicit none
 integer(4)::kord,l,lum,intg
-real(8)::gamma,a,b,c
+real(pr)::gamma,a,b,c
 integer(4),dimension(l+2*kord-1)::k
-real(8),dimension(l+2*kord-1)::t
-real(8),dimension(l,intg)::x,w,pl
+real(pr),dimension(l+2*kord-1)::t
+real(pr),dimension(l,intg)::x,w,pl
 !!!!!!
 integer(4)::i,j,le,nk
-real(8),dimension(lum,intg)::xu,wu,plu
-real(8),dimension(l-lum,intg)::xe,we,ple
+real(pr),dimension(lum,intg)::xu,wu,plu
+real(pr),dimension(l-lum,intg)::xe,we,ple
 integer(4),dimension(lum+2*kord-1)::ku
-real(8),dimension(lum+2*kord-1)::tu
+real(pr),dimension(lum+2*kord-1)::tu
 integer(4),dimension(l-lum+2*kord-1)::ke
-real(8),dimension(l-lum+2*kord-1)::te
+real(pr),dimension(l-lum+2*kord-1)::te
 
 nk=l+2*kord-1   ! # de knots
 
@@ -1104,11 +884,3 @@ end    SUBROUTINE DIST_MIX
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-real(kind(0.d0)) function ground_state(n, B)
-integer, intent(in) :: n
-real(kind(0.d0)), intent(in) :: B
-real(kind(0.d0)), parameter :: beta = 0.00183758049186099 ! en eV/T
-
-ground_state = beta*(real(n, kind(0.d0)) + 0.5d0)*B;
-
-end function ground_state

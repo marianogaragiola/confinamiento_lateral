@@ -1,18 +1,18 @@
 # Binary file
-BIN			= 2eclvsB
+BIN			= 1eclvsB
 
 # Flags
-CFLAGS			= -O3 -cpp
+CFLAGS			= -O3 -cpp -Wall -Wextra
 LDFLAGS			= -llapack #-mkl=sequential -lmkl_lapack95_lp64 -lpthread -lm
 
 # Default Values
-zmin_						= -500.d0
-zmax_						= 500.d0
+zmin_						= -1000.d0
+zmax_						= 1000.d0
 lum_						= 0
 c_							= 0.d0
-gamma_					= 0.d0
+gamma_					= 0.065d0
 kord_						= 7
-l_interval_			= 50
+l_interval_			= 150
 intg_						= 100
 nev_						= 50
 V1_							= 0.37d0
@@ -24,16 +24,13 @@ B_campo_i_			= 1.d0
 B_campo_f_			= 50.d0
 num_puntos_B_		= 50
 me_							= 0.041d0
-delta_					= 0.1d0
-eta_						= 0.5d0
 
-# OFILE			= [CPU,$(Q),$(L),$(SAMPLES),$(TEMP_MIN),$(TEMP_MAX),$(DELTA_TEMP),$(TRAN),$(TMAX),$(DELTA_T)].dat
 
 # Simulation Parameters
 PARAMETERS		= -Dzmin_=$(zmin_) -Dzmax_=$(zmax_) -Dlum_=$(lum_) -Dc_=$(c_) \
 			  -Dgamma_=$(gamma_) -Dkord_=$(kord_) -Dl_interval_=$(l_interval_) -Dintg_=$(intg_) -Dnev_=$(nev_) -DV1_=$(V1_) -DV2_=$(V2_) \
 			  -Dr0_=$(r0_) -Daz_=$(az_) -Dbz_=$(bz_) -DB_campo_i_=$(B_campo_i_) -DB_campo_f_=$(B_campo_f_) \
-				-Dnum_puntos_B_=$(num_puntos_B_) -Dme_=$(me_) -Ddelta_=-$(delta_) -Deta_=$(eta_)
+				-Dnum_puntos_B_=$(num_puntos_B_) -Dme_=$(me_)
 
 # Compilers
 CC			= gfortran #ifort
