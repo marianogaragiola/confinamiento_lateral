@@ -112,8 +112,8 @@ N_base_r = N_splines_r - 1; N_base_z = N_splines_z - 2;
 
 N_dim = N_base_r*N_base_z; # Tamano de las matrices
 
-archivo1 = "./resultados/E_vs_B-v1%6.4feV-v2%6.4feV-Bi%3.1f-Bf%3.1f.dat" % (v1, v2, B_i, B_f)
-archivo2 = "./resultados/z_vs_B-v1%6.4feV-v2%6.4feV-Bi%3.1f-Bf%3.1f.dat" % (v1, v2, B_i, B_f)
+archivo1 = "./resultados0712/E_vs_B-v1%6.4feV-v2%6.4feV-Bi%3.1f-Bf%3.1f.dat" % (v1, v2, B_i, B_f)
+archivo2 = "./resultados0712/z_vs_B-v1%6.4feV-v2%6.4feV-Bi%3.1f-Bf%3.1f.dat" % (v1, v2, B_i, B_f)
 
 f1 = open(archivo1, 'w')
 f2 = open(archivo2, 'w')
@@ -190,7 +190,7 @@ dbsz = [basis.d(i) for i in z_nodos];                        # evaluo las deriva
 r_mat = np.dot(np.transpose(bsr), (np.transpose(r_nodos2)*np.transpose(wr_pesos)*bsr));
 r_mat = np.array([[r_mat[i][j] for i in range(N_splines_r-1)] for j in range(N_splines_r-1)]);
 
-z_mat = np.dot(np.transpose(bsz), (np.transpose(z_nodos2*wz_pesos)*bsz));
+z_mat = np.dot(np.transpose(bsz), (np.transpose(np.abs(z_nodos2)*wz_pesos)*bsz));
 z_mat = np.array([[z_mat[i][j] for i in range(1, N_splines_z-1)] for j in range(1, N_splines_z-1)]);
 
 rz_mat = np.kron(r_mat, z_mat)
@@ -274,9 +274,10 @@ for bcampo in bcampo_vec:
 	f2.write("{:22.15e}   ".format(bcampo))
 	for i in range(50):
 		f1.write("{:22.15e}   ".format(e[i]))
-		f2.write("{:22.15e}   ".format(z_exp[i,0]))
+		f2.write("{:22.15e}   ".format(a0*z_exp[i,0]))
 
 	f1.write("\n")
+	f2.write("\n")
 
 for i in range(5):
 	plt.plot(bcampo_vec, auval[1:,i])
