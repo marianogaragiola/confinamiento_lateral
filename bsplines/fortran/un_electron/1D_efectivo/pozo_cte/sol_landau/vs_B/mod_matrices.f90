@@ -1,70 +1,17 @@
 module matrices
 contains
-subroutine hamiltoniano(nb, v1, v2, Hr, eta, s, v01, v02, ke, v_int, h, ms)
+subroutine hamiltoniano(nb, v1, v2, s, v01, v02, ke, h, ms)
   use precision, pr => dp
   implicit none
   integer, intent(in) :: nb
-  real(pr), intent(in) :: v1, v2, Hr, eta
+  real(pr), intent(in) :: v1, v2
   real(pr), intent(in) :: s(nb,nb), v01(nb,nb), v02(nb,nb), ke(nb,nb)
-  real(pr), intent(in) :: V_int(nb,nb,nb,nb)
-  real(pr), intent(out) :: h(nb*(nb+1)/2,nb*(nb+1)/2), ms(nb*(nb+1)/2,nb*(nb+1)/2)
+  real(pr), intent(out) :: h(nb,nb), ms(nb,nb)
   !!!!
-  integer :: n, m, np, mp, ind, indp, ndimh
-  real(pr) :: h_1p(nb,nb), s_1p(nb,nb), raiz
 
-  ndimh = nb*(nb+1)/2;
-  raiz = 1._pr/sqrt(2._pr);
+  h = ke + v1*v01 - v2*v02
 
-  ! Armo el hamiltoniano de una particula
-  h_1p = ke + v1*v01 - v2*v02 + hr*s;
-  s_1p = s;
-
-  ! Armo el hamiltoniano simetrico de las dos particulas
-  ind = 1
-  do n = 1, nb
-    do m = 1, n!n, dp
-      indp = 1
-      do np = 1, nb
-        do mp = 1, np !np, dp
-
-          if(m.eq.n .and. mp.eq.np)then
-
-            h(ind,indp) = 2.d0*s_1p(n,np)*h_1p(n,np) + eta*V_int(n,n,np,np);
-            ms(ind,indp) = s_1p(n,np)*s_1p(n,np);
-            ! mv(ind,indp) = V_int(n,n,np,np);
-
-          elseif(m.ne.n .and. mp.eq.np )then
-
-            h(ind,indp) = raiz*( 2.d0*s_1p(m,np)*h_1p(n,np) + 2.d0*s_1p(n,np)*h_1p(m,np) &
-                             & + eta*V_int(n,m,np,np) + eta*V_int(m,n,np,np) );
-            ms(ind,indp) = 2.d0*raiz*s_1p(n,np)*s_1p(m,np);
-            ! mv(ind,indp) = 2.d0*raiz*(V_int(n,m,np,np) + V_int(m,n,np,np));
-
-          elseif(m.eq.n .and. mp.ne.np)then
-
-            h(ind,indp) = raiz*( 2.d0*s_1p(n,mp)*h_1p(n,np) + 2.d0*s_1p(n,np)*h_1p(n,mp) &
-                              & + eta*V_int(n,n,np,mp) + eta*V_int(n,n,mp,np) );
-            ms(ind,indp) = 2.d0*raiz*s_1p(n,np)*s_1p(n,mp);
-            ! mv(ind,indp) = 2.d0*raiz*(V_int(n,n,np,mp) + V_int(n,n,mp,np));
-
-          else
-
-            h(ind,indp) = s_1p(n,np)*h_1p(m,mp) + s_1p(n,mp)*h_1p(m,np) &
-                       &+ s_1p(m,mp)*h_1p(n,np) + s_1p(m,np)*h_1p(n,mp) &
-                       &+ 0.5d0*eta*(V_int(n,m,np,mp) + V_int(n,m,mp,np) + V_int(m,n,np,mp) + V_int(m,n,mp,np));
-            ms(ind,indp) = s_1p(n,np)*s_1p(m,mp) + s_1p(n,mp)*s_1p(m,np);
-            ! mv(ind,indp) = 0.5d0*(V_int(n,m,np,mp) + V_int(n,m,mp,np) + V_int(m,n,np,mp) + V_int(m,n,mp,np));
-
-          endif
-          indp = indp + 1
-        end do
-      end do
-      ind = ind + 1
-    end do
-  end do
-
-  if( ndimh.ne.(ind-1) ) stop
-  if( ndimh.ne.(indp-1) ) stop
+  ms = s
 
 end subroutine hamiltoniano
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -89,20 +36,21 @@ end subroutine prod_kron
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-subroutine calculo_matrices(kord, l_interval, n_cuad, nk, nb, me, az, bz, t, k, x, w, s, v01, v02, ke)
+subroutine calculo_matrices(kord, l_interval, n_cuad, nk, nb, me, az, bz, t, k, x, w, s, z_mat, v01, v02, ke)
   use precision, pr => dp
   implicit none
   integer, intent(in) :: kord, l_interval, n_cuad, nk, nb
   integer, intent(in) :: k(nk)
   real(pr), intent(in) :: me, az, bz
   real(pr), intent(in) :: t(nk), x(l_interval,n_cuad), w(l_interval,n_cuad)
-  real(pr), intent(out) :: s(nb,nb), v01(nb,nb), v02(nb,nb), ke(nb,nb)
+  real(pr), intent(out) :: s(nb,nb), v01(nb,nb), v02(nb,nb), ke(nb,nb), z_mat(nb,nb)
   !!!
   integer :: i, j, m, n, im, in
   real(pr) :: bsp(kord)
   real(pr) :: bm, bn, zz
 
   s = 0._pr ; v01 = 0._pr; v02 = 0._pr; ke = 0._pr
+  z_mat = 0._pr;
 
   do i = kord, kord+l_interval-1
     do j = 1, n_cuad
@@ -117,6 +65,8 @@ subroutine calculo_matrices(kord, l_interval, n_cuad, nk, nb, me, az, bz, t, k, 
 
             if( in>0.and.in<nb+1 )then
               s(im,in) = s(im,in) + bsp(m)*bsp(n)*w(k(i),j);
+
+              z_mat(im,in) = z_mat(im,in) + bsp(m)*bsp(n)*w(k(i),j)*abs(zz);
 
               if(abs(zz).le.0.5*az) then
                 v02(im,in) = v02(im,in) + w(k(i),j)*bsp(m)*bsp(n);
@@ -161,77 +111,6 @@ subroutine calculo_matrices(kord, l_interval, n_cuad, nk, nb, me, az, bz, t, k, 
    end do
 
 end subroutine calculo_matrices
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-subroutine interaccion(kord, l_interval, n_cuad, nk, nb, delta, k, t, x, w, V_int)
-  use precision, pr => dp
-  implicit none
-  integer, intent(in) :: kord, l_interval, n_cuad, nk, nb
-  integer, intent(in) :: k(nk)
-  real(pr), intent(in) :: t(nk), x(l_interval,n_cuad), w(l_interval,n_cuad)
-  real(pr), intent(in) :: delta
-  real(pr), intent(out) :: V_int(nb,nb,nb,nb)
-  !!!!
-  integer :: i1, i2, j1, j2
-  integer :: m, n, im, in, mp, imp, np
-  real(pr) :: zz1, zz2, w1, w2
-  real(pr) :: f(nb,nb), bsp(kord)
-
-
-  do i1 = kord, kord+l_interval-1
-    do j1 = 1, n_cuad
-      zz1 = x(k(i1), j1); w1 = w(k(i1), j1);
-
-      f = 0._pr;
-      do i2 = kord, kord+l_interval-1
-        do j2 = 1, n_cuad
-          zz2 = x(k(i2), j2); w2 = w(k(i2),j2);
-
-          call bsplvb(t, kord, 1, zz2, i2, bsp)
-
-          do m = 1, kord
-            im = i2-kord+m-1
-            if(im>0 .and. im<nb+1)then
-              do n = 1, kord
-                in = i2-kord+n-1
-                if(in>0 .and. in<nb+1)then
-
-                   f(im,in) = f(im,in) + bsp(m)*bsp(n)*w2/sqrt(delta**2 + (zz1-zz2)**2)
-
-                end if
-              end do
-            end if
-          end do
-        end do
-      end do
-
-      bsp = 0._pr;
-      call bsplvb(t, kord, 1, zz1, i1, bsp)
-      do m = 1, kord
-        im = i1-kord+m-1
-        if(im>0 .and. im<nb+1) then
-          do mp = 1, kord
-            imp = i1-kord+mp-1;
-            if(imp>0 .and. imp<nb+1) then
-              do n = 1, nb
-                do np = 1, nb
-
-                  V_int(im, n, imp, np) = V_int(im, n, imp, np) + bsp(m)*bsp(mp)*w1*f(n, np);
-
-                end do
-              end do
-            end if
-          end do
-        end if
-      end do
-
-
-    end do
-  end do
-
-
-end subroutine interaccion
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!

@@ -2,6 +2,7 @@
 \usepackage{inputenc}
 \usepackage{graphicx}
 \usepackage{amsmath}
+\usepackage[left=2.5cm,right=2.5cm,top=3cm,bottom=2cm]{geometry}
 
 %opening
 \title{Effective Coulomb Potentials}
@@ -155,7 +156,7 @@ To sum up, the effective one-dimensional Hamiltonian of the system is
 \noindent we can deduce the following relation
 
 \begin{equation}
-  Estoy\, hay\, que\, recalcular
+  Esto\, hay\, que\, recalcular
 \end{equation}
 
 \subsection*{Piecewise potential}
@@ -206,7 +207,7 @@ effective potential take the form
                        \end{matrix}\right. \, ,
 \end{equation}
 
-\noindent where $V_r = \int_0^{a_{\rho}} \rho^3 r^2(\rho) d\rho$ and the radial Hamiltonian is not
+\noindent where $V_r = \int_0^{a_{\rho}} \rho\, r^2(\rho) d\rho$ and the radial Hamiltonian is not
 diagonal anymore
 
 \begin{equation}
@@ -220,7 +221,7 @@ For the evaluation of $T_r$ and $U_r$ is necesary to know the radial ground-stat
 equation for the ground-state is
 
 \begin{equation}
-\frac{d^2\phi}{d\rho^2} + \frac{1}{\rho} \frac{d\phi}{d\rho} + \left(\varepsilon - U(\rho)\right) \phi(\rho) = 0
+\frac{d^2\phi}{d\rho^2} + \frac{1}{\rho} \frac{d\phi}{d\rho} + \left(\varepsilon - U(\rho)\right) \phi(\rho) = 0\,,
 \end{equation}
 
 \noindent where $U(\rho) = \frac{2 m_e}{\hbar^2} V(\rho)$ and $\varepsilon = \frac{2 m_e}{\hbar^2} E$. This equation
@@ -228,8 +229,8 @@ separate in two depending on the ragion of integration
 
 \begin{equation}
 \begin{matrix}
-\frac{d^2\phi}{d\rho^2} + \frac{1}{\rho} \frac{d\phi}{d\rho} + \left(U_2 - |\varepsilon|\right) \phi(\rho) = 0 & \rho<a_{\rho} \\
-\frac{d^2\phi}{d\rho^2} + \frac{1}{\rho} \frac{d\phi}{d\rho} - |\varepsilon| \phi(\rho) = 0 & a_{\rho}<\rho
+\frac{d^2\phi}{d\rho^2} + \frac{1}{\rho} \frac{d\phi}{d\rho} + \left(U_2 - |\varepsilon|\right) \phi(\rho) = 0 & \rho<a_{\rho}\,, \\
+\frac{d^2\phi}{d\rho^2} + \frac{1}{\rho} \frac{d\phi}{d\rho} - |\varepsilon| \phi(\rho) = 0 & a_{\rho}<\rho\,,
 \end{matrix}
 \end{equation}
 
@@ -237,11 +238,96 @@ separate in two depending on the ragion of integration
 
 \begin{equation}
 \phi(\rho) = \left\{\begin{matrix}
-                      A_I J_0\left(\sqrt{\frac{2 m_e}{\hbar^2}\left(|E| - V_2\right)} \rho\right) & \rho<a_{\rho} \\
-                      A_{II} K_0\left(\sqrt{\frac{2 m_e}{\hbar^2}|E| \rho}\right) & a_{\rho}<\rho
+                      A J_0\left(\sqrt{\frac{2 m_e}{\hbar^2}\left(|E| - V_2\right)} \rho\right) & \rho<a_{\rho} \\
+                      B K_0\left(\sqrt{\frac{2 m_e}{\hbar^2}|E|} \rho\right) & a_{\rho}<\rho
                     \end{matrix}
-             \right.
+             \right.\,.
 \end{equation}
+
+Using the continuity condition for the wave function and its derivative
+
+\begin{eqnarray}
+A\,J_0(\sqrt{U_2-|\varepsilon|}a_{\rho}) &=& B\,K_0(\sqrt{|\varepsilon|}a_{\rho} ) \,, \\
+\sqrt{U_2-|\varepsilon|}\,A\,J_1(\sqrt{U_2-|\varepsilon|}a_{\rho}) &=& \sqrt{|\varepsilon|}\,B\,K_1(\sqrt{|\varepsilon|}a_{\rho} )\,,
+\end{eqnarray}
+
+\noindent where the relations $J_0'(x) = -J_1(x)$ and $K_0'(x) = -K_1(x)$ were used, it is
+posible to determine the equation for the ground-state energy
+
+\begin{equation}
+\sqrt{U_2 - |\varepsilon|}\,\frac{J_1(\sqrt{U_2-|\varepsilon|}a_{\rho})}{J_0(\sqrt{U_2-|\varepsilon|}a_{\rho})} =
+\sqrt{|\varepsilon|}\, \frac{K_1(\sqrt{|\varepsilon|} a_{\rho})}{K_0(\sqrt{|\varepsilon|} a_{\rho})} \,,
+\end{equation}
+
+\noindent and the relation
+
+\begin{equation}
+B = \frac{J_0(\sqrt{U_2-|\varepsilon|}a_{\rho})}{K_0(\sqrt{|\varepsilon|} a_{\rho})}\, A \,.
+\end{equation}
+
+To calculate the constants $A$ and $B$ we impose the normalization of the wave function
+
+\begin{equation}
+1 = A^2 \int_0^{a_{\rho}} \rho J_0^2(\sqrt{U_2-|\varepsilon|} \rho) d\rho +
+B^2\int_{a_{\rho}}^{\infty} \rho K_0^2(\sqrt{|\varepsilon|} \rho) d\rho\,,
+\end{equation}
+
+\noindent evaluating the corresponding integrals and using the continuity condition together with
+the relation between $A$ and $B$ it can be shown that
+
+\begin{equation}
+1 = \frac{A^2 a_{\rho}^2}{2}\,J_1^2(\sqrt{U_2-|\varepsilon|}a_{\rho})\,\left[ 1 +
+\frac{U_2-|\varepsilon|}{|\varepsilon|} \right]\,.
+\end{equation}
+
+Now we are ready to find some expretion for the $V_r$, $U_r$ and $T_r$. Let start with the
+simplest one, $V_r$, the correspondig integral is easy to evaluate and give
+
+\begin{equation}
+  V_r = \frac{A^2 a_{\rho}^2}{2}\left[J_0^2(\sqrt{U_2-|\varepsilon|}a_{\rho})
+  + J_1^2(\sqrt{U_2-|\varepsilon|}a_{\rho}) \right]\,.
+\end{equation}
+
+\noindent The following is the $U_r$ integral which is separated in two $U_r = A^2 U_1 + B^2 U_2$
+where
+
+\begin{eqnarray}
+  U_1 &=& \int_0^{a_{\rho}} \rho^3\, J_0(\sqrt{U_2-|\varepsilon|}\rho)\,d\rho\,, \\
+  U_2 &=& \int_{a_{\rho}}^{\infty} \rho^3\, K_0(\sqrt{|\varepsilon|}\rho)\,d\rho\,,
+\end{eqnarray}
+
+\noindent these integrals gives
+
+\begin{eqnarray}
+  U_1 &=& \frac{a_{\rho}^2}{6\,\alpha^2} \left[a_{\rho}^2\,\alpha^2\,J_0^2(\alpha\,a_{\rho})
+  + 2\,a_{\rho}\,\alpha\,J_0(\alpha\,a_{\rho})\,J_1^2(\alpha\,a_{\rho}) +
+  \left(a_{\rho}^2\,\alpha^2 - 2\right)\,J_1(\alpha\,a_{\rho})\right]\,, \\
+  U_2 &=& \frac{\sqrt{\pi}}{4\,\beta^4}\,MeijerG\left(\left\{\left\{ \right\},\left\{1, 5/2 \right\} \right\},
+  \left\{\left\{0,2,2,2 \right\}, \left\{ \right\} \right\}, \beta^2 a_{\rho}^2 \right)\,,
+\end{eqnarray}
+
+\noindent where $\alpha = \sqrt{U_2-|\varepsilon|}$ and $\beta = \sqrt{|\varepsilon|}$.
+NOTE: These results were obteined using Mathematica, it would be usefull is the expretion for $U_2$
+is rewriten in terms of Bessels functions.
+
+The last integral is the correspondig to $T_r$, this is also writen as $T_r = A^2 T_1 + B^2 T_2$ with
+
+\begin{eqnarray}
+T_1 &=& \int_0^{a_{\rho}} \rho\, \left(\frac{d J_0(\alpha\,\rho)}{d\rho}\right)^2\, d\rho
+     = \alpha^2\,\int_0^{a_{\rho}} \rho\,J_1^2(\alpha\,\rho)\, d\rho\,, \\
+T_2 &=& \int_{a_{\rho}}^{\infty} \rho\, \left(\frac{d K_0(\beta\,\rho)}{d\rho}\right)^2\, d\rho
+     = \beta^2\,\int_{a_{\rho}}^{\infty} \rho\,K_1^2(\beta\,\rho)\, d\rho\,,
+\end{eqnarray}
+
+\begin{eqnarray}
+T_1 &=& \frac{a_{\rho}\,\alpha}{2} \left[a_{\rho}\,\alpha\,J_0^2(\alpha\,a_{\rho})
+     - 2\,J_0(\alpha\,a_{\rho})\,J_1(\alpha\,a_{\rho})
+     + \alpha\,a_{\rho}\,J_1^2(\alpha\,a_{\rho}) \right] \,, \\
+T_2 &=& \frac{a_{\rho}\,\beta}{2} \left[a_{\rho}\,\beta\,K_0^2(\beta\,a_{\rho})
+     + 2\,K_0(\beta\,a_{\rho})\,K_1(\beta\,a_{\rho})
+     - \beta\,a_{\rho}\,K_1^2(\alpha\,a_{\rho}) \right] \,,
+\end{eqnarray}
+
 
 \section*{Quasi 1D problem (lateral confinement), two particle case}
 In this section we show how to obtain the effective potentials for HO confinement of the
@@ -459,7 +545,7 @@ l in nanometers ($nm$). For this purpose the value of $\alpha$ is:
 \alpha = 658.4092645439 \, \ T nm^2
 \end{equation}
 
-\begin{figure}[h]
+\begin{figure}[ht]
 \begin{center}
  \includegraphics[scale=0.5]{B_vs_l.eps}
 \end{center}
@@ -481,7 +567,7 @@ donde $\beta = \frac{\hbar q}{m c}$ esta en $\frac{eV}{T}$ y $B$ en $T$.
 
 Usando la masa reducida de $GaAs$, $m^* = 0.063 m_0$ tenemos $\beta = 1.83758049186099\times 10^{-3}$
 
-\begin{figure}[h]
+\begin{figure}[ht]
 \begin{center}
  \includegraphics[scale=0.5]{landau_levels.eps}
 \end{center}

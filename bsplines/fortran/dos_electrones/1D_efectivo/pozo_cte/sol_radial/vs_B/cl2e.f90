@@ -56,6 +56,14 @@
 #define V2_ 1._pr
 #endif
 
+#ifndef ETA_
+#define ETA_ 1._pr
+#endif
+
+#ifndef DELTA_
+#define DELTA_ 0.5_pr
+#endif
+
 #ifndef BCAMPO_I_
 #define BCAMPO_I_ 1._pr
 #endif
@@ -78,7 +86,7 @@ program main
   integer :: tipo, kord, l_interval, n_cuad, nev
   integer :: num_puntos_b
   real(pr) :: zmin, zmax, beta, me, v1, v2
-  real(pr) :: az, bz, r0
+  real(pr) :: az, bz, r0, delta, eta
   real(pr) :: bcampo_i, bcampo_f
   real(pr) :: Tr, Ur, Vr, Hr, omega
   real(pr), parameter :: a0 = 0.0529177210_pr, eV = 27.21138564_pr
@@ -91,8 +99,10 @@ program main
   real(pr), allocatable :: t(:)
   real(pr), allocatable :: x(:,:), w(:,:), pl(:,:)
   real(pr), allocatable :: s(:,:), v01(:,:), v02(:,:), ke(:,:)
-  real(pr), allocatable :: h(:,:), ms(:,:), auval(:)
-  character(150) :: archivo
+  real(pr), allocatable :: V_int(:,:,:,:)
+  real(pr), allocatable :: h(:,:), ms(:,:), mv(:,:), auval(:), auvec(:,:)
+  real(pr), allocatable :: exp_int(:,:)
+  character(150) :: file_auval, file_exp
 
   zmin = real(ZMIN_, pr); zmax = real(ZMAX_, pr);
   tipo = TIPO_;
@@ -102,16 +112,21 @@ program main
   me = real(ME_, pr);
   az = real(AZ_, pr); bz = real(BZ_, pr); r0 = real(R0_, pr);
   v1 = real(V1_, pr); v2 = real(V2_, pr);
+  delta = real(DELTA_, pr); eta = real(ETA_, pr);
   bcampo_i = real(BCAMPO_I_, pr); bcampo_f = real(BCAMPO_F_, pr);
   num_puntos_b = NUM_PUNTOS_B_;
 
   nk = l_interval+2*kord-1;    ! # de knots
   ! No incluimos primer   y ultimo spline debido a psi(0)=psi(R)=0
   nb = kord+l_interval-3;      ! tamaño base splines
-  ndimh = nb;
+  ndimh = nb*(nb+1)/2;
 
-  write(archivo, '("./resultados/1e-E_vs_B-v1_",f6.4,"eV-v2_",f6.4,"eV-az_",f6.4,"-bz_",f6.4,".dat")') v1, v2, az, bz
-  open(10, file = archivo)
+  write(file_auval, '("./resultados/2e-E_vs_B-v1_",f6.4,"eV-v2_",f6.4,"eV-az_",f6.4,"-bz_",f6.4,"-eta_",f8.6,".dat")') v1, v2, az&
+  &, bz, eta
+  write(file_exp, '("./resultados/2e-Int_vs_B-v1_",f6.4,"eV-v2_",f6.4,"eV-az_",f6.4,"-bz_",f6.4,"-eta_",f8.6,".dat")') v1, v2, az&
+  &, bz, eta
+  open(10, file = file_auval)
+  open(11, file = file_exp)
   write(10,'(A28,f8.2,A1,f8.2,A4)') "# Intervalo de integracion:[", zmin,",", zmax, "] nm"
   write(10,'(A32,x,I2,x,A33)') "# Tipo de distribucion de knots:", tipo, "(1 es uniforme, 2 es exponencial)"
   write(10,'(A47,x,f8.6)') "# Cte de decaimiento en distribucion exp beta =", beta
@@ -122,6 +137,8 @@ program main
   write(10,'(A22,x,f6.4,x,A2)') "# Altura del pozo V1 =", v1, "eV"
   write(10,'(A27,x,f6.4,x,A2)') "# Profundidad del pozo V2 =", v2, "eV"
   write(10,'(A22,x,f6.4,x,A9,x,f6.4,x,A2)') "# Radios del pozo az =", az, "nm y bz =", bz, "nm"
+  write(10,'(A41,x,f6.4,x,A2)') "# Cte de rectificacion de Coulomb delta =", delta, "nm"
+  write(10,'(A22,x,f6.4)') "# Carga efectiva eta =", eta
   write(10,'(A27,x,f6.2,x,A19,x,f7.2)') "# Campo inicial b_campo_i =", bcampo_i, "y final b_campo_f =", bcampo_f
   write(10,'(A24)') "# Autovalores calculados"
   call flush();
@@ -129,14 +146,16 @@ program main
   ! Paso a unidades atomicas todo
   v1 = v1/eV; v2 = v2/eV;
   zmin = zmin/a0; zmax = zmax/a0;
-  beta = beta*a0;
+  beta = beta*a0; delta = delta/a0;
   az = az/a0; bz = bz/a0; r0 = r0/a0;
 
   allocate(k(nk), t(nk))
   allocate(x(l_interval,n_cuad), w(l_interval,n_cuad), pl(l_interval,n_cuad))
   allocate(s(nb,nb), v01(nb,nb), v02(nb,nb), ke(nb,nb))
-  allocate(h(ndimh,ndimh), ms(ndimh,ndimh))
-  allocate(auval(nev))
+  allocate(V_int(nb,nb,nb,nb))
+  allocate(h(ndimh,ndimh), ms(ndimh,ndimh), mv(ndimh,ndimh))
+  allocate(auval(nev), auvec(ndimh,nev))
+  allocate(exp_int(nev,nev))
 
   !! calculos los knots y los puntos de la cuadratura
   call KNOTS_PESOS(kord, tipo, beta, zmin, zmax, l_interval, n_cuad, t, k, x, w, pl)
@@ -144,6 +163,8 @@ program main
   !! ahora paso a calcular las matrices del problema
   s(:,:) = 0._pr; v01(:,:) = 0._pr; v02(:,:) = 0._pr; ke(:,:) = 0._pr;
   call calculo_matrices(kord, l_interval, n_cuad, nk, nb, me, az, bz, t, k, x, w, s, v01, v02, ke);
+
+  call interaccion(kord, l_interval, n_cuad, nk, nb, delta, k, t, x, w, V_int)
 
   delta_b = (bcampo_f-bcampo_i)/real(num_puntos_b, pr);
 
@@ -162,14 +183,17 @@ program main
 
     Hr = Tr + omega**2*Ur
 
-    call hamiltoniano(nb, v1, vr*v2, Hr, s, v01, v02, ke, h, ms);
+    call hamiltoniano(nb, v1, vr*v2, Hr, eta, s, v01, v02, ke, v_int, h, ms, mv);
 
-    call eigenvalues(ndimh, nev, h, ms, auval)
+    call eigenvalues(ndimh, nev, h, ms, auval, auvec)
 
     auval = eV*auval;
 
+    exp_int = matmul(transpose(auvec), matmul(mv, auvec))
+
     write(10,6) bcampo, (auval(i), i = 1, nev)
-   call flush();
+    write(11,6) bcampo, (exp_int(i,i), i = 1, nev)
+    call flush();
   end do
 
   deallocate(k, t)
@@ -177,6 +201,9 @@ program main
   deallocate(s, v01, v02, ke)
   deallocate(h, ms)
   deallocate(auval)
+
+  close(10)
+  close(11)
 
 6 format(e22.14,1x,1000(1x,e22.14))
 ! 7 format(3000(1x,e22.14))

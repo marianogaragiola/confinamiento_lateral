@@ -36,20 +36,21 @@ end subroutine prod_kron
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-subroutine calculo_matrices(kord, l_interval, n_cuad, nk, nb, me, az, bz, t, k, x, w, s, v01, v02, ke)
+subroutine calculo_matrices(kord, l_interval, n_cuad, nk, nb, me, az, bz, t, k, x, w, s, z_mat, v01, v02, ke)
   use precision, pr => dp
   implicit none
   integer, intent(in) :: kord, l_interval, n_cuad, nk, nb
   integer, intent(in) :: k(nk)
   real(pr), intent(in) :: me, az, bz
   real(pr), intent(in) :: t(nk), x(l_interval,n_cuad), w(l_interval,n_cuad)
-  real(pr), intent(out) :: s(nb,nb), v01(nb,nb), v02(nb,nb), ke(nb,nb)
+  real(pr), intent(out) :: s(nb,nb), v01(nb,nb), v02(nb,nb), ke(nb,nb), z_mat(nb,nb)
   !!!
   integer :: i, j, m, n, im, in
   real(pr) :: bsp(kord)
   real(pr) :: bm, bn, zz
 
   s = 0._pr ; v01 = 0._pr; v02 = 0._pr; ke = 0._pr
+  z_mat = 0._pr;
 
   do i = kord, kord+l_interval-1
     do j = 1, n_cuad
@@ -64,6 +65,8 @@ subroutine calculo_matrices(kord, l_interval, n_cuad, nk, nb, me, az, bz, t, k, 
 
             if( in>0.and.in<nb+1 )then
               s(im,in) = s(im,in) + bsp(m)*bsp(n)*w(k(i),j);
+
+              z_mat(im,in) = z_mat(im,in) + bsp(m)*bsp(n)*w(k(i),j)*abs(zz);
 
               if(abs(zz).le.0.5*az) then
                 v02(im,in) = v02(im,in) + w(k(i),j)*bsp(m)*bsp(n);

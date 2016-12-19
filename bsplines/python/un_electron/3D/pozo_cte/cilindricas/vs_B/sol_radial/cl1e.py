@@ -157,6 +157,11 @@ Hr = Tr - v0*Vr
 e, auvec = LA.eigh(Hr, Sr);
 e = eV*e;
 
+for i in range(20):
+	f1.write("{0:22.15e}   ".format(e[i]))
+
+f1.write("\n")
+
 ge = auvec[:,0]
 
 dge = np.dot(dbsr, ge)
@@ -182,3 +187,5 @@ for i in range(np.size(r_nodos)):
 
 f1.close()
 f2.close()
+f3.close()
+f4.close()
