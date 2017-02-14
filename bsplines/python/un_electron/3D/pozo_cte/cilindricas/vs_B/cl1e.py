@@ -85,7 +85,7 @@ a0 = 0.0529177210; eV = 27.21138564; c_light = 137.035999074492; ua_to_T = 1.72e
 ## Parametros fisicos del problema
 me		 = 0.041; #0.063; ## Masa de la particula
 mz		 = 0.0; ## Componente z del momento angular
-r0		 = 7.0; ## Ancho del pozo en rho
+r0		 = 9.0; ## Ancho del pozo en rho
 az		 = 7.0;
 bz		 = 2.5;
 v1		 = 0.37; ## Alto de la barrera
@@ -93,7 +93,8 @@ v2		 = 0.108844; ## Profundidad del pozo
 B_i		 = 0.0;
 B_f 	 = 50.0;
 
-bcampo_vec = np.linspace(B_i, B_f, 150);
+
+bcampo_vec = np.linspace(B_i, B_f, 100);
 
 ## Separo las coordenadas y tomo distinta base en r y en z
 Rmin = 0.0;
@@ -112,8 +113,8 @@ N_base_r = N_splines_r - 1; N_base_z = N_splines_z - 2;
 
 N_dim = N_base_r*N_base_z; # Tamano de las matrices
 
-archivo1 = "./resultados0712/E_vs_B-v1%6.4feV-v2%6.4feV-Bi%3.1f-Bf%3.1f.dat" % (v1, v2, B_i, B_f)
-archivo2 = "./resultados0712/z_vs_B-v1%6.4feV-v2%6.4feV-Bi%3.1f-Bf%3.1f.dat" % (v1, v2, B_i, B_f)
+archivo1 = "./res04022017/E_vs_B-v1%6.4feV-v2%6.4feV-az%6.4f-r0%6.4f-Bi%3.1f-Bf%3.1f.dat" % (v1, v2, az, r0, B_i, B_f)
+archivo2 = "./res04022017/z_vs_B-v1%6.4feV-v2%6.4feV-az%6.4f-r0%6.4f-Bi%3.1f-Bf%3.1f.dat" % (v1, v2, az, r0, B_i, B_f)
 
 f1 = open(archivo1, 'w')
 f2 = open(archivo2, 'w')

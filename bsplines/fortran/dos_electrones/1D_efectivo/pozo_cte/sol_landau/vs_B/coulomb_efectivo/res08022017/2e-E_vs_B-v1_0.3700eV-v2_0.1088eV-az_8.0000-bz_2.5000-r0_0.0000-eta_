@@ -1,0 +1,13 @@
+# Intervalo de integracion:[-1000.00, 1000.00] nm
+# Tipo de distribucion de knots:  2 (1 es uniforme, 2 es exponencial)
+# Cte de decaimiento en distribucion exp beta = 0.006500
+# Orden de los bsplines kord =  7
+# Num de intervalos 100 , grado de la cuadratura 100
+# Num de knost 113 , tamaño de la base nb  104
+# Masa efectiva del electron me = 0.041000 UA
+# Altura del pozo V1 = 0.3700 eV
+# Profundidad del pozo V2 = 0.1088 eV
+# Radios del pozo az = 8.0000 nm y bz = 2.5000 nm
+# Carga efectiva eta = 0.0000
+# Campo inicial b_campo_i =   1.00 y final b_campo_f =   50.00
+# Autovalores calculados

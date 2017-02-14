@@ -60,10 +60,6 @@
 #define ETA_ 1._pr
 #endif
 
-#ifndef DELTA_
-#define DELTA_ 0.5_pr
-#endif
-
 #ifndef BCAMPO_I_
 #define BCAMPO_I_ 1._pr
 #endif
@@ -86,7 +82,7 @@ program main
   integer :: tipo, kord, l_interval, n_cuad, nev
   integer :: num_puntos_b
   real(pr) :: zmin, zmax, beta, me, v1, v2
-  real(pr) :: az, bz, r0, delta, eta
+  real(pr) :: az, bz, r0, eta
   real(pr) :: bcampo_i, bcampo_f
   real(pr) :: Vr, omega, slope_ll
   real(pr), parameter :: a0 = 0.0529177210_pr, eV = 27.21138564_pr
@@ -112,7 +108,7 @@ program main
   me = real(ME_, pr);
   az = real(AZ_, pr); bz = real(BZ_, pr); r0 = real(R0_, pr);
   v1 = real(V1_, pr); v2 = real(V2_, pr);
-  delta = real(DELTA_, pr); eta = real(ETA_, pr);
+  eta = real(ETA_, pr);
   bcampo_i = real(BCAMPO_I_, pr); bcampo_f = real(BCAMPO_F_, pr);
   num_puntos_b = NUM_PUNTOS_B_;
 
@@ -123,9 +119,10 @@ program main
 
   slope_ll = eV/(me*c_light*ua_to_T)
 
-  write(file_auval, '("./resultados161216/2e-E_vs_B-v1_",f6.4,"eV-v2_",f6.4,"eV-az_",f6.4,"-bz_",f6.4,"-eta_",f8.6,".dat")') v1, & 
-  &v2, az, bz, eta
-  write(file_exp, '("./resultados161216/2e-Int_vs_B-v1_",f6.4,"eV-v2_",f6.4,"eV-az_",f6.4,"-bz_",f6.4,"-eta_",f8.6,".dat")') v1, &
+  write(file_auval, '("./res08022017/2e-E_vs_B-v1_",f6.4,"eV-v2_",f6.4,"eV-az_",f6.4,"-bz_",f6.4,"-r0_",f6.4,"-eta_",f8.6,".dat")')&
+  & v1, v2, az, bz, eta
+  write(file_exp, '("./res08022017/2e-Int_vs_B-v1_",f6.4,"eV-v2_",f6.4,"eV-az_",f6.4,"-bz_",f6.4,"-r0_",f6.4,"&
+  &-eta_",f8.6,".dat")') v1, &
   &v2, az, bz, eta
   open(10, file = file_auval)
   open(11, file = file_exp)
@@ -139,7 +136,6 @@ program main
   write(10,'(A22,x,f6.4,x,A2)') "# Altura del pozo V1 =", v1, "eV"
   write(10,'(A27,x,f6.4,x,A2)') "# Profundidad del pozo V2 =", v2, "eV"
   write(10,'(A22,x,f6.4,x,A9,x,f6.4,x,A2)') "# Radios del pozo az =", az, "nm y bz =", bz, "nm"
-  write(10,'(A41,x,f6.4,x,A2)') "# Cte de rectificacion de Coulomb delta =", delta, "nm"
   write(10,'(A22,x,f6.4)') "# Carga efectiva eta =", eta
   write(10,'(A27,x,f6.2,x,A19,x,f7.2)') "# Campo inicial b_campo_i =", bcampo_i, "y final b_campo_f =", bcampo_f
   write(10,'(A24)') "# Autovalores calculados"
@@ -148,7 +144,7 @@ program main
   ! Paso a unidades atomicas todo
   v1 = v1/eV; v2 = v2/eV;
   zmin = zmin/a0; zmax = zmax/a0;
-  beta = beta*a0; delta = delta/a0;
+  beta = beta*a0;
   az = az/a0; bz = bz/a0; r0 = r0/a0;
 
   allocate(k(nk), t(nk))
@@ -166,8 +162,6 @@ program main
   s(:,:) = 0._pr; v01(:,:) = 0._pr; v02(:,:) = 0._pr; ke(:,:) = 0._pr;
   call calculo_matrices(kord, l_interval, n_cuad, nk, nb, me, az, bz, t, k, x, w, s, v01, v02, ke);
 
-  call interaccion(kord, l_interval, n_cuad, nk, nb, delta, k, t, x, w, V_int)
-
   delta_b = (bcampo_f-bcampo_i)/real(num_puntos_b, pr);
 
   ind_b = 0;
@@ -179,6 +173,8 @@ program main
     omega = 0.5*bcampo/(me*c_light*ua_to_T);  !! Frecuencia de oscilacion debida al campo
 
     vr = (1._pr - exp(-0.5_pr*(r0/l_campo)**2))
+
+    call interaccion(kord, l_interval, n_cuad, nk, nb, l_campo, k, t, x, w, V_int)
 
     call hamiltoniano(nb, v1, vr*v2, eta, s, v01, v02, ke, v_int, h, ms, mv);
 

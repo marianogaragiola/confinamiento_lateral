@@ -64,7 +64,7 @@ a0 = 0.0529177210; eV = 27.21138564; c_light = 137.035999074492; ua_to_T = 1.72e
 ## Parametros fisicos del problema
 me		 = 0.041; #0.063; ## Masa de la particula
 mz		 = 0.0; ## Componente z del momento angular
-r0		 = 7.0; ## Ancho del pozo en rho
+r0		 = 9.0; ## Ancho del pozo en rho
 v0		 = 0.108844; ## Profundidad del pozo
 
 
@@ -156,6 +156,8 @@ Hr = Tr - v0*Vr
 
 e, auvec = LA.eigh(Hr, Sr);
 e = eV*e;
+
+print e[0]*2*me/eV
 
 for i in range(20):
 	f1.write("{0:22.15e}   ".format(e[i]))

@@ -113,8 +113,10 @@ program main
   slope_ll = eV/(me*c_light*ua_to_T)
 
 
-  write(file_auval, '("./resultados/1e-E_vs_B-v1_",f6.4,"eV-v2_",f6.4,"eV-az_",f6.4,"-bz_",f6.4,".dat")') v1, v2, az, bz
-  write(file_zexp, '("./resultados/1e-z_vs_B-v1_",f6.4,"eV-v2_",f6.4,"eV-az_",f6.4,"-bz_",f6.4,".dat")') v1, v2, az, bz
+  write(file_auval, '("./res04022017/1e-E_vs_B-v1_",f6.4,"eV-v2_",f6.4,"eV-az_",f6.4,"-bz_",f6.4,"-r0_",f6.4,".dat")') v1, v2, az,& 
+  & bz, r0
+  write(file_zexp, '("./res04022017/1e-z_vs_B-v1_",f6.4,"eV-v2_",f6.4,"eV-az_",f6.4,"-bz_",f6.4,"-r0_",f6.4,".dat")') v1, v2, az,&
+  & bz, r0
   open(10, file = file_auval)
   open(11, file = file_zexp)
   write(10,'(A28,f8.2,A1,f8.2,A4)') "# Intervalo de integracion:[", zmin,",", zmax, "] nm"

@@ -1,0 +1,48 @@
+\documentclass[10pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel}
+\usepackage{graphicx}
+\usepackage{amsmath}
+
+\begin{document}
+
+\noindent
+{\Large Informacion de los graficos}\\
+
+Todos los graficos que estan en este directorio corresponden al potencial de confinamiento 
+
+\begin{equation}
+  V(\rho, z) = \left\{ \begin{matrix}
+                         -V_2 & \rho<a_{\rho}\, |z|\leq\frac{a_z}{2} \\
+                         V_1  & \frac{a_z}{2}< |z| \leq \frac{a_z + b_z}{2}\\
+                         0    &
+                       \end{matrix}\right.
+\end{equation}
+
+\noindent
+y el hamiltoniano $3D$ es
+
+\begin{equation}
+H = -\frac{\hbar^2}{2 m_e}\left[\frac{1}{\rho}\frac{\partial}{\partial \rho}\left(\rho \frac{\partial}{\partial \rho} \right)
++ \frac{1}{\rho^2}\frac{\partial^2}{\partial \varphi^2}+\frac{\partial^2}{\partial z^2} \right] + V(\rho, z)
++ \frac{1}{2} m_e \omega^2 \rho^2 - i \hbar \omega \frac{\partial}{\partial \varphi}\, ,
+\end{equation}
+
+Estudiamos primero el caso de un solo electron, para eso resolvimos el problema $3D$ y despues el $1D$ efectivo con dos
+funciones de onda radial distinta, el estado fundamental de Landau y el estado fundamental del pozo.
+
+Para el caso de dos particulas hicimos lo mismo para la funcion de onda espacial simetrica.
+
+Todos los graficos estan hechos con los mismos parametros que son:
+\begin{eqnarray*}
+m_e &=& 0.041\,  \\
+a_{\rho} &=& 7\,nm\\
+a_z &=& 7\,nm \\
+b_z &=& 2.5\, nm \\
+V_1 &=& 0.37\, eV \\
+V_2 &=& 0.10884\, eV
+\end{eqnarray*}
+
+\noindent
+la masa efectiva corresponde al material $Ga_xIn_{1-x}As$
+\end{document}

@@ -11,7 +11,7 @@ MOD4	= mod_eig
 CXX		= gfortran
 
 # FLAGS
-FLAGS			= -cpp -O0 -Wall -Wextra -fcheck=all
+FLAGS			= -cpp -O3 -Wall -Wextra -fcheck=all
 LDFLAGS		= -llapack
 
 # VALUES
@@ -22,15 +22,14 @@ BETA_						= 0.0065d0
 KORD_						= 7
 L_INTERVAL_			= 100
 N_CUAD_					= 100
-NEV_						= 1000
+NEV_						= 100
 ME_							= 0.041d0
-AZ_							= 7.d0
+AZ_							= 8.d0
 BZ_							= 2.5d0
-R0_							= 7.d0
+R0_							= 8.d0
 V1_							= 0.37d0
 V2_							= 0.108844d0
 ETA_						= 0.01d0
-DELTA_					= 0.1d0
 BCAMPO_I_				= 1.d0
 BCAMPO_F_				= 50.d0
 NUM_PUNTOS_B_		= 60
@@ -39,7 +38,7 @@ NUM_PUNTOS_B_		= 60
 PARAMETER	= -DZMIN_=$(ZMIN_) -DZMAX_=$(ZMAX_) -DTIPO_=$(TIPO_) -DBETA_=$(BETA_) \
 					  -DKORD_=$(KORD_) -DL_INTERVAL_=$(L_INTERVAL_) -DN_CUAD_=$(N_CUAD_) \
 						-DNEV_=$(NEV_) -DME_=$(ME_) -DAZ_=$(AZ_) -DBZ_=$(BZ_) -DR0_=$(R0_) \
-						-DV1_=$(V1_) -DV2_=$(V2_) -DETA_=$(ETA_) -DDELTA_=$(DELTA_) \
+						-DV1_=$(V1_) -DV2_=$(V2_) -DETA_=$(ETA_) \
 						-DBCAMPO_I_=$(BCAMPO_I_) -DBCAMPO_F_=$(BCAMPO_F_) \
 						-DNUM_PUNTOS_B_=$(NUM_PUNTOS_B_)
 
