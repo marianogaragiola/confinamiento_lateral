@@ -1,5 +1,5 @@
 # FILE
-BIN		= cl1e_mod
+BIN		= cl1e
 
 # MODULES
 MOD1	= mod_prec
@@ -26,7 +26,7 @@ NEV_						= 50
 ME_							= 0.041d0
 AZ_							= 7.0d0
 BZ_							= 2.5d0
-R0_							= 7.0d0
+R0_							= 9.0d0
 V1_							= 0.37d0
 V2_							= 0.108844d0
 BCAMPO_I_				= 1.d0

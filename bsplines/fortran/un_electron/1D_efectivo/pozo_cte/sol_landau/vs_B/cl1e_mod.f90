@@ -159,10 +159,10 @@ program main
 
     bcampo = bcampo_i + delta_b*real(ind_b, pr);
 
-    l_campo = sqrt(alpha/bcampo)/a0;
+    l_campo = sqrt(2.0*alpha/bcampo)/a0;
     omega = 0.5*bcampo/(me*c_light*ua_to_T);  !! Frecuencia de oscilacion debida al campo
 
-    vr = (1._pr - exp(-0.5_pr*(r0/l_campo)**2))
+    vr = (1._pr - exp(-(r0/l_campo)**2))
 
     call hamiltoniano(nb, v1, vr*v2, s, v01, v02, ke, h, ms);
 
@@ -170,7 +170,7 @@ program main
 
     call eigenvalues(ndimh, nev, h, ms, auval, auvec)
 
-    auval = eV*auval + 0.5_pr*slope_ll*bcampo;
+    auval = eV*(auval + omega) !0.5_pr*slope_ll*bcampo;
 
     z_exp = matmul(transpose(auvec), matmul(z_mat, auvec))
 

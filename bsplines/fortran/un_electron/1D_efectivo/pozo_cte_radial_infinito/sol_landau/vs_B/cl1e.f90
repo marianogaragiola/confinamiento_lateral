@@ -48,6 +48,10 @@
 #define R0_ 2._pr
 #endif
 
+#ifndef RMAX_
+#define RMAX_ 50._pr
+#endif
+
 #ifndef V1_
 #define V1_ 0._pr
 #endif
@@ -78,9 +82,9 @@ program main
   integer :: tipo, kord, l_interval, n_cuad, nev
   integer :: num_puntos_b
   real(pr) :: zmin, zmax, beta, me, v1, v2
-  real(pr) :: az, bz, r0
+  real(pr) :: az, bz, r0, rmax
   real(pr) :: bcampo_i, bcampo_f
-  real(pr) :: Vr, omega, slope_ll
+  real(pr) :: vr, vrmax, omega, slope_ll
   real(pr), parameter :: a0 = 0.0529177210_pr, eV = 27.21138564_pr
   real(pr), parameter :: alpha = 658.4092645439_pr, c_light = 137.035999074492_pr
   real(pr), parameter :: ua_to_T = 1.72d3
@@ -100,7 +104,7 @@ program main
   kord = KORD_;
   l_interval = L_INTERVAL_; n_cuad = N_CUAD_; nev = NEV_;
   me = real(ME_, pr);
-  az = real(AZ_, pr); bz = real(BZ_, pr); r0 = real(R0_, pr);
+  az = real(AZ_, pr); bz = real(BZ_, pr); r0 = real(R0_, pr); rmax = real(RMAX_, pr);
   v1 = real(V1_, pr); v2 = real(V2_, pr);
   bcampo_i = real(BCAMPO_I_, pr); bcampo_f = real(BCAMPO_F_, pr);
   num_puntos_b = NUM_PUNTOS_B_;
@@ -113,10 +117,10 @@ program main
   slope_ll = eV/(me*c_light*ua_to_T)
 
 
-  write(file_auval, '("./res03032017/1e-E_vs_B-v1_",f6.4,"eV-v2_",f6.4,"eV-az_",f6.4,"-bz_",f6.4,"-r0_",f6.4,".dat")') v1, v2, az,& 
-  & bz, r0
-  write(file_zexp, '("./res03032017/1e-z_vs_B-v1_",f6.4,"eV-v2_",f6.4,"eV-az_",f6.4,"-bz_",f6.4,"-r0_",f6.4,".dat")') v1, v2, az,&
-  & bz, r0
+  write(file_auval, '("./res01032017/1e-E_vs_B-v1_",f6.4,"eV-v2_",f6.4,"eV-az_",f6.4,"-bz_",f6.4,"&
+  &-r0_",f6.4,"-rmax_",f7.4,".dat")') v1, v2, az, bz, r0, rmax
+  write(file_zexp, '("./res01032017/1e-z_vs_B-v1_",f6.4,"eV-v2_",f6.4,"eV-az_",f6.4,"-bz_",f6.4,"& 
+  &-r0_",f6.4,"-rmax_",f7.4,".dat")') v1, v2, az, bz, r0, rmax
   open(10, file = file_auval)
   open(11, file = file_zexp)
   write(10,'(A28,f8.2,A1,f8.2,A4)') "# Intervalo de integracion:[", zmin,",", zmax, "] nm"
@@ -137,7 +141,7 @@ program main
   v1 = v1/eV; v2 = v2/eV;
   zmin = zmin/a0; zmax = zmax/a0;
   beta = beta*a0;
-  az = az/a0; bz = bz/a0; r0 = r0/a0;
+  az = az/a0; bz = bz/a0; r0 = r0/a0; rmax = rmax/a0;
 
   allocate(k(nk), t(nk))
   allocate(x(l_interval,n_cuad), w(l_interval,n_cuad), pl(l_interval,n_cuad))
@@ -162,9 +166,10 @@ program main
     l_campo = sqrt(alpha/bcampo)/a0;
     omega = 0.5*bcampo/(me*c_light*ua_to_T);  !! Frecuencia de oscilacion debida al campo
 
-    vr = (1._pr - exp(-0.5_pr*(r0/l_campo)**2))
+    vr = (1._pr - exp(-0.5_pr*(r0/l_campo)**2));
+    vrmax = (1._pr - exp(-0.5_pr*(rmax/l_campo)**2));
 
-    call hamiltoniano(nb, v1, vr*v2, s, v01, v02, ke, h, ms);
+    call hamiltoniano(nb, vrmax*v1, vr*v2, s, v01, v02, ke, h, ms);
 
     auval = 0._pr
 

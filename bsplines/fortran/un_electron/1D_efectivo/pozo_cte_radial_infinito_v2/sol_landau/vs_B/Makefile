@@ -1,5 +1,5 @@
 # FILE
-BIN		= cl1e_mod
+BIN		= cl1e
 
 # MODULES
 MOD1	= mod_prec
@@ -27,16 +27,17 @@ ME_							= 0.041d0
 AZ_							= 7.0d0
 BZ_							= 2.5d0
 R0_							= 7.0d0
+RMAX_						= 7.0d0
 V1_							= 0.37d0
 V2_							= 0.108844d0
 BCAMPO_I_				= 1.d0
-BCAMPO_F_				= 50.d0
-NUM_PUNTOS_B_		= 50
+BCAMPO_F_				= 100.d0
+NUM_PUNTOS_B_		= 99
 
 # PARAMETER
 PARAMETER	= -DZMIN_=$(ZMIN_) -DZMAX_=$(ZMAX_) -DTIPO_=$(TIPO_) -DBETA_=$(BETA_) \
 					  -DKORD_=$(KORD_) -DL_INTERVAL_=$(L_INTERVAL_) -DN_CUAD_=$(N_CUAD_) \
-						-DNEV_=$(NEV_) -DME_=$(ME_) -DAZ_=$(AZ_) -DBZ_=$(BZ_) -DR0_=$(R0_) \
+						-DNEV_=$(NEV_) -DME_=$(ME_) -DAZ_=$(AZ_) -DBZ_=$(BZ_) -DR0_=$(R0_) -DRMAX_=$(RMAX_) \
 						-DV1_=$(V1_) -DV2_=$(V2_) -DBCAMPO_I_=$(BCAMPO_I_) -DBCAMPO_F_=$(BCAMPO_F_) \
 						-DNUM_PUNTOS_B_=$(NUM_PUNTOS_B_)
 
