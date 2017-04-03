@@ -1,4 +1,24 @@
-
+! Programa fortran que resuelve el problema de aproximacion
+! 1D de un electron en un QD dado por el potencial
+!
+!          v1 if(az/2<|z|<(az+bz)/2)
+! V(r,z) = -v2 if(r<r0 and |z|<az/2)
+!          0  en otro caso
+!
+! La aproximacion 1D se obtiene despues de calcular
+! el valor de expectacion del hamiltoniano 3D en el
+! estado fundamental de Landau. Las integrales radiales
+! se calcular en el intervalo [0 Rmax] por lo que
+! el potencial de confinamiento en la coordenada z es:
+!
+!           v1 (1 - exp(-(Rmax/l_campo)**2)) if(az/2<|z|<(az+bz)/2)
+! V(r,z) = -v2 (1 - exp(-(r0/l_campo)**2)) if(|z|<az/2)
+!           0  en otro caso
+!
+! donde l_campo = sqrt(2.0_pr*alpha/bcampo), alpha = 658.4092645439 nm^2/T
+!
+! Se calculan los autovalores y autovectores del hamiltoniano como
+! funcion del campo magnetico.
 !!!!!!!!!!!!!!!!!!!!
 #ifndef ZMIN_
 #define ZMIN_  0._pr
@@ -119,7 +139,7 @@ program main
 
   write(file_auval, '("./res22032017/1e-E_vs_B-v1_",f6.4,"eV-v2_",f6.4,"eV-az_",f6.4,"-bz_",f6.4,"&
   &-r0_",f6.4,"-rmax_",f7.4,".dat")') v1, v2, az, bz, r0, rmax
-  write(file_zexp, '("./res22032017/1e-z_vs_B-v1_",f6.4,"eV-v2_",f6.4,"eV-az_",f6.4,"-bz_",f6.4,"& 
+  write(file_zexp, '("./res22032017/1e-z_vs_B-v1_",f6.4,"eV-v2_",f6.4,"eV-az_",f6.4,"-bz_",f6.4,"&
   &-r0_",f6.4,"-rmax_",f7.4,".dat")') v1, v2, az, bz, r0, rmax
   open(10, file = file_auval)
   open(11, file = file_zexp)

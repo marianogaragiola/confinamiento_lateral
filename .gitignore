@@ -14,4 +14,5 @@
 *.aux
 *.tar.gz
 *.pyc
+*.agr
 octave-workspace
