@@ -1,0 +1,33 @@
+set terminal qt
+
+set key l
+
+set border linewidth 2.5
+set tics scale 2
+
+set tics font "Helvetica,15"
+
+set size {0.9, 0.9}
+
+set xlabel font "Helvetica,20"
+set ylabel font "Helvetica,20"
+set xlabel 'B [T]'
+set ylabel 'Energia [eV]'
+
+set title "az = 7 nm; bz = 2.5 nm; ar = 7 nm; v1 = 0.37 eV; v2 = 0.108844 eV;"
+
+file1 = './res17032017/2e-E_vs_B-v1_0.3700eV-v2_0.1088eV-az_7.0000-bz_2.5000-r0_7.0000-rmax_7.0000-eta_0.001000.dat'
+file2 = './res17032017/2e-E_vs_B-v1_0.3700eV-v2_0.1088eV-az_7.0000-bz_2.5000-r0_7.0000-rmax_7.0000-eta_0.002500.dat'
+file3 = './res17032017/2e-E_vs_B-v1_0.3700eV-v2_0.1088eV-az_7.0000-bz_2.5000-r0_7.0000-rmax_7.0000-eta_0.005000.dat'
+file4 = './res17032017/2e-E_vs_B-v1_0.3700eV-v2_0.1088eV-az_7.0000-bz_2.5000-r0_7.0000-rmax_7.0000-eta_0.007500.dat'
+file5 = './res17032017/2e-E_vs_B-v1_0.3700eV-v2_0.1088eV-az_7.0000-bz_2.5000-r0_7.0000-rmax_7.0000-eta_0.010000.dat'
+
+plot 'threshold-3D.dat' u 1:2 w l t 'Threshold' lw 2, \
+file1 u 1:2 w l t '{/Symbol h}=0.001' lw 2, file2 u 1:2 w l t '{/Symbol h}=0.0025' lw 2, \
+file3 u 1:2 w l t '{/Symbol h}=0.005' lw 2, file4 u 1:2 w l t '{/Symbol h}=0.0075' lw 2, \
+file5 u 1:2 w l t '{/Symbol h}=0.01' lw 2
+
+set terminal postscript color
+set output "graficos.ps"
+
+rep

@@ -1,20 +1,20 @@
 # Codigo en python que calcula los autovalores de una
-# particula en un pozo de potencial 2D.
+# particula en un pozo de simetrica esferica
+# al cual se le aplica un campo magnetico.
 # Se calcula los elementos de matriz del hamiltoniano
-# en coordenadas cilindricas. Se resuelve el hamiltoniano
-# radial.
+# en coordenadas cilindricas.
 # El hamiltoniano es
 #
-# H = -hbar^2/(2*me) (1/r*d/dr(r*d/dr)) + V(r) +
-#     + hbar^2mz^2/(2*me*r^2)
+# H = -hbar^2/(2*me) (1/r*d/dr(r*d/dr)+d^2/dz^2) + V(r,z) +
+#     + 0.5*me*omega^2*r^2 + hbar^2mz^2/(2*me*r^2) + hbar*omega*mz
 #
 # donde mz es la componente en el eje z del momento angular.
 #
 # El potencial de confinamiento para la particula es
 #
-#           -v0 if(r<r0)
-# V(r,z) =
-#           0  en otro caso
+#           v1 if(r<r0 and az/2<|z|<(az+bz)/2)
+# V(r,z) = -v2 if(r>r0 and |z|<az/2)
+#           0
 #
 # La matriz del hamiltoniano la calculo usando como base
 # del espacio los B-splines. El problema de autovalores es un
@@ -22,7 +22,8 @@
 #
 #     H*c = E*S*c
 #
-# Guardo, la solucion del estado fundamental.
+# Guardo, los autovalores del hamiltoniano en funcion del
+# campo magnetico aplicado.
 #######################################################################
 #######################################################################
 import numpy as np
@@ -61,17 +62,17 @@ def V_potencial_pozo_rho(r0, x):
 a0 = 0.0529177210; eV = 27.21138564; c_light = 137.035999074492; ua_to_T = 1.72e3;
 
 ## Parametros fisicos del problema
-me		 = 0.041; #0.063; ## Masa de la particula
+me		 = 0.063; #0.063; ## Masa de la particula
 mz		 = 0.0; ## Componente z del momento angular
-r0		 = 9.0; ## Ancho del pozo en rho
-v0		 = 0.108844; ## Profundidad del pozo
+r0		 = 3.0; ## Ancho del pozo en rho
+v0		 = 0.246; ## Profundidad del pozo
 
 
 ## Separo las coordenadas y tomo distinta base en r y en z
 Rmin = 0.0;
 Rmax = 50.0;
 
-N_intervalos_r = 50;
+N_intervalos_r = 100;
 N_cuad = 500;
 grado = 6;
 kord = grado + 1;
@@ -176,8 +177,8 @@ file2 = "d_ground_state.dat"
 f3 = open(file1, 'w')
 f4 = open(file2, 'w')
 for i in range(np.size(r_nodos)):
-	f3.write("{0:22.15e}   {1:22.15e}\n".format(r_nodos[i], ge[i]))
-	f4.write("{0:22.15e}   {1:22.15e}\n".format(r_nodos[i], dge[i]))
+	f3.write("{0:22.15e}   {1:22.15e}\n".format(a0*r_nodos[i], r_nodos[i]*ge[i]**2/a0))
+	f4.write("{0:22.15e}   {1:22.15e}\n".format(a0*r_nodos[i], dge[i]))
 
 
 # exit(0)

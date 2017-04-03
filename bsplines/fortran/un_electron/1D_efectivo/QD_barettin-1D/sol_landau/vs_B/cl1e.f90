@@ -117,10 +117,13 @@ program main
   slope_ll = eV/(me*c_light*ua_to_T)
 
 
-  write(file_auval, '("./res22032017/1e-E_vs_B-v1_",f6.4,"eV-v2_",f6.4,"eV-az_",f6.4,"-bz_",f6.4,"&
-  &-r0_",f6.4,"-rmax_",f7.4,".dat")') v1, v2, az, bz, r0, rmax
-  write(file_zexp, '("./res22032017/1e-z_vs_B-v1_",f6.4,"eV-v2_",f6.4,"eV-az_",f6.4,"-bz_",f6.4,"& 
-  &-r0_",f6.4,"-rmax_",f7.4,".dat")') v1, v2, az, bz, r0, rmax
+  write(file_auval, '("./res15032017/1e-E_vs_B-v1_",f6.4,"eV-v2_",f6.4,"eV-az_",f6.4,"-bz_",f6.4,"&
+  &-r0_",f6.4,"-rmax_",f6.4,".dat")') v1, v2, az, bz, r0, rmax
+  write(file_zexp, '("./res15032017/1e-z_vs_B-v1_",f6.4,"eV-v2_",f6.4,"eV-az_",f6.4,"-bz_",f6.4,"& 
+  &-r0_",f6.4,"-rmax_",f6.4,".dat")') v1, v2, az, bz, r0, rmax
+!  file_auval = './res/E.dat'
+!  file_zexp = './res/z.dat'
+
   open(10, file = file_auval)
   open(11, file = file_zexp)
   write(10,'(A28,f8.2,A1,f8.2,A4)') "# Intervalo de integracion:[", zmin,",", zmax, "] nm"
@@ -132,7 +135,8 @@ program main
   write(10,'(A33,x,f8.6,x,A2)') "# Masa efectiva del electron me =", me, "UA"
   write(10,'(A22,x,f6.4,x,A2)') "# Altura del pozo V1 =", v1, "eV"
   write(10,'(A27,x,f6.4,x,A2)') "# Profundidad del pozo V2 =", v2, "eV"
-  write(10,'(A22,x,f6.4,x,A9,x,f6.4,x,A2)') "# Radios del pozo az =", az, "nm y bz =", bz, "nm"
+  write(10,'(A22,x,f6.4,x,A9,x,f6.4,x,A2)') "# Anchos del pozo az =", az, "nm y bz =", bz, "nm"
+  write(10,'(A31,x,f6.4,x,A11,x,f6.4,x,A2)') "# Radios de la parte radia r0 =", r0, "nm y Rmax =", Rmax, "nm"
   write(10,'(A27,x,f6.2,x,A19,x,f7.2)') "# Campo inicial b_campo_i =", bcampo_i, "y final b_campo_f =", bcampo_f
   write(10,'(A24)') "# Autovalores calculados"
   call flush();
@@ -164,7 +168,7 @@ program main
     bcampo = bcampo_i + delta_b*real(ind_b, pr);
 
     l_campo = sqrt(2.0_pr*alpha/bcampo)/a0;
-    omega = 0.5_pr*bcampo/(me*c_light*ua_to_T);  !! Frecuencia de oscilacion debida al campo
+    omega = 0.5*bcampo/(me*c_light*ua_to_T);  !! Frecuencia de oscilacion debida al campo
 
     vr = (1._pr - exp(-(r0/l_campo)**2));
     vrmax = (1._pr - exp(-(rmax/l_campo)**2));

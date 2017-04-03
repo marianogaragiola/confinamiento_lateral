@@ -91,7 +91,7 @@ program main
   !!!!!!
   integer :: i, nk, nb, ndimh, ind_b
   integer, allocatable :: k(:)
-  real(pr) :: delta_b, bcampo, l_campo
+  real(pr) :: delta_b, bcampo, l_campo, normalization
   real(pr), allocatable :: t(:)
   real(pr), allocatable :: x(:,:), w(:,:), pl(:,:)
   real(pr), allocatable :: s(:,:), v01(:,:), v02(:,:), z_mat(:,:), ke(:,:)
@@ -117,9 +117,9 @@ program main
   slope_ll = eV/(me*c_light*ua_to_T)
 
 
-  write(file_auval, '("./res22032017/1e-E_vs_B-v1_",f6.4,"eV-v2_",f6.4,"eV-az_",f6.4,"-bz_",f6.4,"&
+  write(file_auval, '("./res06032017/1e-E_vs_B-v1_",f6.4,"eV-v2_",f6.4,"eV-az_",f6.4,"-bz_",f6.4,"&
   &-r0_",f6.4,"-rmax_",f7.4,".dat")') v1, v2, az, bz, r0, rmax
-  write(file_zexp, '("./res22032017/1e-z_vs_B-v1_",f6.4,"eV-v2_",f6.4,"eV-az_",f6.4,"-bz_",f6.4,"& 
+  write(file_zexp, '("./res06032017/1e-z_vs_B-v1_",f6.4,"eV-v2_",f6.4,"eV-az_",f6.4,"-bz_",f6.4,"& 
   &-r0_",f6.4,"-rmax_",f7.4,".dat")') v1, v2, az, bz, r0, rmax
   open(10, file = file_auval)
   open(11, file = file_zexp)
@@ -164,18 +164,20 @@ program main
     bcampo = bcampo_i + delta_b*real(ind_b, pr);
 
     l_campo = sqrt(2.0_pr*alpha/bcampo)/a0;
-    omega = 0.5_pr*bcampo/(me*c_light*ua_to_T);  !! Frecuencia de oscilacion debida al campo
+    omega = 0.5*bcampo/(me*c_light*ua_to_T);  !! Frecuencia de oscilacion debida al campo
 
-    vr = (1._pr - exp(-(r0/l_campo)**2));
+    normalization = 1._pr/sqrt(1._pr - exp(-(rmax/l_campo)**2));
+
+    vr = (1._pr - exp(-(r0/l_campo)**2))*normalization**2;
     vrmax = (1._pr - exp(-(rmax/l_campo)**2));
 
-    call hamiltoniano(nb, vrmax*v1, vr*v2, s, v01, v02, ke, h, ms);
+    call hamiltoniano(nb, v1, vr*v2, s, v01, v02, ke, h, ms);
 
     auval = 0._pr
 
     call eigenvalues(ndimh, nev, h, ms, auval, auvec)
 
-    auval = eV*(auval + omega); !0.5_pr*slope_ll*bcampo;
+    auval = eV*(auval + omega) !0.5_pr*slope_ll*bcampo;
 
     z_exp = matmul(transpose(auvec), matmul(z_mat, auvec))
 

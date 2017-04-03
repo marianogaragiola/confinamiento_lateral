@@ -1,5 +1,5 @@
 # Codigo en python que calcula los autovalores de una
-# particula en un pozo de potencial
+# particula en un pozo de simetrica esferica
 # al cual se le aplica un campo magnetico.
 # Se calcula los elementos de matriz del hamiltoniano
 # en coordenadas cilindricas.
@@ -12,9 +12,9 @@
 #
 # El potencial de confinamiento para la particula es
 #
-#           v1 if(az/2<|z|<(az+bz)/2)
-# V(r,z) = -v2 if(r<r0 and |z|<az/2)
-#           0  en otro caso
+#           v1 if(r<r0 and az/2<|z|<(az+bz)/2)
+# V(r,z) = -v2 if(r>r0 and |z|<az/2)
+#           0
 #
 # La matriz del hamiltoniano la calculo usando como base
 # del espacio los B-splines. El problema de autovalores es un
@@ -84,18 +84,16 @@ a0 = 0.0529177210; eV = 27.21138564; c_light = 137.035999074492; ua_to_T = 1.72e
 
 ## Parametros fisicos del problema
 me		 = 0.041; #0.063; ## Masa de la particula
-mz		 = 1.0; ## Componente z del momento angular
+mz		 = 0.0; ## Componente z del momento angular
 r0		 = 7.0; ## Ancho del pozo en rho
-az		 = r0; #5.0;
+az		 = 7.0;
 bz		 = 2.5;
 v1		 = 0.37; ## Alto de la barrera
 v2		 = 0.108844; ## Profundidad del pozo
 B_i		 = 0.0;
-B_f 	 = 100.0;
+B_f 	 = 50.0;
 
-# r0_vec = np.array([5.0, 7.0, 10.0, 13.0, 15.0, 17.0, 20.0]);
-
-bcampo_vec = np.linspace(B_i, B_f, 101);
+bcampo_vec = np.linspace(B_i, B_f, 150);
 
 ## Separo las coordenadas y tomo distinta base en r y en z
 Rmin = 0.0;
@@ -114,9 +112,9 @@ N_base_r = N_splines_r - 1; N_base_z = N_splines_z - 2;
 
 N_dim = N_base_r*N_base_z; # Tamano de las matrices
 
-archivo1 = "./res28032017/E_vs_B-v1%6.4feV-v2%6.4feV-az%6.4f-r0%6.4f-Bi%3.1f-Bf%3.1f.dat" % (v1, v2, az, r0, B_i, B_f)
-archivo2 = "./res28032017/z_vs_B-v1%6.4feV-v2%6.4feV-az%6.4f-r0%6.4f-Bi%3.1f-Bf%3.1f.dat" % (v1, v2, az, r0, B_i, B_f)
-archivo3 = "./res28032017/r_vs_B-v1%6.4feV-v2%6.4feV-az%6.4f-r0%6.4f-Bi%3.1f-Bf%3.1f.dat" % (v1, v2, az, r0, B_i, B_f)
+archivo1 = "./resultados/E_vs_B-v1%6.4feV-v2%6.4feV-Bi%3.1f-Bf%3.1f.dat" % (v1, v2, B_i, B_f)
+archivo2 = "./resultados/z_vs_B-v1%6.4feV-v2%6.4feV-Bi%3.1f-Bf%3.1f.dat" % (v1, v2, B_i, B_f)
+archivo3 = "./resultados/entanglemet-v1%6.4feV-v2%6.4feV-Bi%3.1f-Bf%3.1f.dat" % (v1, v2, B_i, B_f)
 
 f1 = open(archivo1, 'w')
 f2 = open(archivo2, 'w')
@@ -194,7 +192,7 @@ dbsz = [basis.d(i) for i in z_nodos];                        # evaluo las deriva
 r_mat = np.dot(np.transpose(bsr), (np.transpose(r_nodos2)*np.transpose(wr_pesos)*bsr));
 r_mat = np.array([[r_mat[i][j] for i in range(N_splines_r-1)] for j in range(N_splines_r-1)]);
 
-z_mat = np.dot(np.transpose(bsz), (np.transpose(np.abs(z_nodos2)*wz_pesos)*bsz));
+z_mat = np.dot(np.transpose(bsz), (np.transpose(z_nodos2*wz_pesos)*bsz));
 z_mat = np.array([[z_mat[i][j] for i in range(1, N_splines_z-1)] for j in range(1, N_splines_z-1)]);
 
 rz_mat = np.kron(r_mat, z_mat)
@@ -206,12 +204,6 @@ Sr = np.array([[Sr[i][j] for i in range(N_splines_r-1)] for j in range(N_splines
 ## Matriz de solapamiento en z
 Sz = np.dot(np.transpose(bsz), (np.transpose(wz_pesos)*bsz));
 Sz = np.array([[Sz[i][j] for i in range(1, N_splines_z-1)] for j in range(1, N_splines_z-1)]);
-
-## Pequeno parentesis para calcular matrices que se usan para el valor de expectacion de r
-r_mat = np.dot(np.transpose(bsr), (np.transpose(r_nodos2**2)*np.transpose(wr_pesos)*bsr));
-r_mat = np.array([[r_mat[i][j] for i in range(N_splines_r-1)] for j in range(N_splines_r-1)]);
-
-r2_mat = np.kron(r_mat, Sz);
 
 ## Matriz de energia cinetica en r
 Tr = 0.5/me*np.dot(np.transpose(dbsr), (np.transpose(r_nodos2)*np.transpose(wr_pesos)*dbsr));
@@ -279,27 +271,36 @@ for bcampo in bcampo_vec:
 	auval = np.vstack((auval, e));
 
 	z_exp = np.dot(np.transpose(auvec), np.dot(rz_mat, auvec))
-	r_exp = np.dot(np.transpose(auvec), np.dot(r2_mat, auvec));
 
 	f1.write("{:22.15e}   ".format(bcampo))
 	f2.write("{:22.15e}   ".format(bcampo))
-	f3.write("{:22.15e}   ".format(bcampo))
 	for i in range(50):
 		f1.write("{:22.15e}   ".format(e[i]))
-		f2.write("{:22.15e}   ".format(a0*z_exp[i,0]))
-		f3.write("{:22.15e}   ".format(a0*r_exp[i,0]))
+		f2.write("{:22.15e}   ".format(z_exp[i,0]))
 
 	f1.write("\n")
-	f2.write("\n")
-	f3.write("\n")
 
-# for i in range(5):
-# 	plt.plot(bcampo_vec, auval[1:,i])
-#
-# slope_ll = eV/(me*c_light*ua_to_T);
-#
-# plt.plot(bcampo_vec, 0.5*slope_ll*bcampo_vec)
-# plt.show()
+	## Tomo el estado fundamental
+	ge = auvec[:,0]
+	ge = np.reshape(ge, (N_base_r, N_base_z))
+
+	rdm = np.dot(np.dot(Sz, np.dot(np.transpose(ge), np.dot(Sr, ge))), Sz)
+	rdm = 0.5*(rdm + np.transpose(rdm))
+
+	lambda_k, phi = LA.eigh(rdm, Sz)
+
+	Svn = -np.dot(lambda_k[lambda_k>0], np.log(lambda_k[lambda_k>0]))/np.log(2)
+	purity = np.dot(lambda_k, lambda_k)
+
+	f3.write("{0:22.15e}   {1:22.15e}   {2:22.15e}\n".format(bcampo, Svn, purity))
+
+for i in range(5):
+	plt.plot(bcampo_vec, auval[1:,i])
+
+slope_ll = eV/(me*c_light*ua_to_T);
+
+plt.plot(bcampo_vec, 0.5*slope_ll*bcampo_vec)
+plt.show()
 
 f1.close()
 f2.close()

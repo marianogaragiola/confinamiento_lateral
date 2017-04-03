@@ -60,6 +60,10 @@
 #define V2_ 1._pr
 #endif
 
+#ifndef ETA_
+#define ETA_ 1._pr
+#endif
+
 #ifndef BCAMPO_I_
 #define BCAMPO_I_ 1._pr
 #endif
@@ -82,7 +86,7 @@ program main
   integer :: tipo, kord, l_interval, n_cuad, nev
   integer :: num_puntos_b
   real(pr) :: zmin, zmax, beta, me, v1, v2
-  real(pr) :: az, bz, r0, rmax
+  real(pr) :: az, bz, r0, rmax, eta
   real(pr) :: bcampo_i, bcampo_f
   real(pr) :: vr, vrmax, omega, slope_ll
   real(pr), parameter :: a0 = 0.0529177210_pr, eV = 27.21138564_pr
@@ -94,9 +98,11 @@ program main
   real(pr) :: delta_b, bcampo, l_campo
   real(pr), allocatable :: t(:)
   real(pr), allocatable :: x(:,:), w(:,:), pl(:,:)
-  real(pr), allocatable :: s(:,:), v01(:,:), v02(:,:), z_mat(:,:), ke(:,:)
-  real(pr), allocatable :: h(:,:), ms(:,:), auval(:), auvec(:,:), z_exp(:,:)
-  character(150) :: file_auval, file_zexp
+  real(pr), allocatable :: s(:,:), v01(:,:), v02(:,:), ke(:,:)
+  real(pr), allocatable :: V_int(:,:,:,:)
+  real(pr), allocatable :: h(:,:), ms(:,:), mv(:,:), auval(:), auvec(:,:)
+  real(pr), allocatable :: exp_int(:,:)
+  character(150) :: file_auval, file_exp
 
   zmin = real(ZMIN_, pr); zmax = real(ZMAX_, pr);
   tipo = TIPO_;
@@ -106,23 +112,23 @@ program main
   me = real(ME_, pr);
   az = real(AZ_, pr); bz = real(BZ_, pr); r0 = real(R0_, pr); rmax = real(RMAX_, pr);
   v1 = real(V1_, pr); v2 = real(V2_, pr);
+  eta = real(ETA_, pr);
   bcampo_i = real(BCAMPO_I_, pr); bcampo_f = real(BCAMPO_F_, pr);
   num_puntos_b = NUM_PUNTOS_B_;
 
   nk = l_interval+2*kord-1;    ! # de knots
   ! No incluimos primer   y ultimo spline debido a psi(0)=psi(R)=0
   nb = kord+l_interval-3;      ! tamaño base splines
-  ndimh = nb;
+  ndimh = nb*(nb+1)/2;
 
   slope_ll = eV/(me*c_light*ua_to_T)
 
-
-  write(file_auval, '("./res22032017/1e-E_vs_B-v1_",f6.4,"eV-v2_",f6.4,"eV-az_",f6.4,"-bz_",f6.4,"&
-  &-r0_",f6.4,"-rmax_",f7.4,".dat")') v1, v2, az, bz, r0, rmax
-  write(file_zexp, '("./res22032017/1e-z_vs_B-v1_",f6.4,"eV-v2_",f6.4,"eV-az_",f6.4,"-bz_",f6.4,"& 
-  &-r0_",f6.4,"-rmax_",f7.4,".dat")') v1, v2, az, bz, r0, rmax
+  write(file_auval, '("./res19032017/2e-E_vs_B-v1_",f6.4,"eV-v2_",f6.4,"eV-az_",f6.4,"-bz_",f6.4,"&
+  &-r0_",f6.4,"-rmax_",f6.4,"-eta_",f8.6,".dat")') v1, v2, az, bz, r0, rmax, eta
+  write(file_exp, '("./res19032017/2e-Int_vs_B-v1_",f6.4,"eV-v2_",f6.4,"eV-az_",f6.4,"-bz_",f6.4,"&
+  &-r0_",f6.4,"-rmax_",f6.4,"-eta_",f8.6,".dat")') v1, v2, az, bz, r0, rmax, eta
   open(10, file = file_auval)
-  open(11, file = file_zexp)
+  open(11, file = file_exp)
   write(10,'(A28,f8.2,A1,f8.2,A4)') "# Intervalo de integracion:[", zmin,",", zmax, "] nm"
   write(10,'(A32,x,I2,x,A33)') "# Tipo de distribucion de knots:", tipo, "(1 es uniforme, 2 es exponencial)"
   write(10,'(A47,x,f8.6)') "# Cte de decaimiento en distribucion exp beta =", beta
@@ -133,6 +139,8 @@ program main
   write(10,'(A22,x,f6.4,x,A2)') "# Altura del pozo V1 =", v1, "eV"
   write(10,'(A27,x,f6.4,x,A2)') "# Profundidad del pozo V2 =", v2, "eV"
   write(10,'(A22,x,f6.4,x,A9,x,f6.4,x,A2)') "# Radios del pozo az =", az, "nm y bz =", bz, "nm"
+  write(10,'(A31,x,f6.4,x,A11,x,f6.4,x,A2)') "# Radios de la parte radia r0 =", r0, "nm y Rmax =", Rmax, "nm"
+  write(10,'(A22,x,f6.4)') "# Carga efectiva eta =", eta
   write(10,'(A27,x,f6.2,x,A19,x,f7.2)') "# Campo inicial b_campo_i =", bcampo_i, "y final b_campo_f =", bcampo_f
   write(10,'(A24)') "# Autovalores calculados"
   call flush();
@@ -145,16 +153,18 @@ program main
 
   allocate(k(nk), t(nk))
   allocate(x(l_interval,n_cuad), w(l_interval,n_cuad), pl(l_interval,n_cuad))
-  allocate(s(nb,nb), v01(nb,nb), v02(nb,nb), z_mat(nb,nb), ke(nb,nb))
-  allocate(h(ndimh,ndimh), ms(ndimh,ndimh))
-  allocate(auval(nev), auvec(ndimh,nev), z_exp(nev,nev))
+  allocate(s(nb,nb), v01(nb,nb), v02(nb,nb), ke(nb,nb))
+  allocate(V_int(nb,nb,nb,nb))
+  allocate(h(ndimh,ndimh), ms(ndimh,ndimh), mv(ndimh,ndimh))
+  allocate(auval(nev), auvec(ndimh,nev))
+  allocate(exp_int(nev,nev))
 
   !! calculos los knots y los puntos de la cuadratura
   call KNOTS_PESOS(kord, tipo, beta, zmin, zmax, l_interval, n_cuad, t, k, x, w, pl)
 
   !! ahora paso a calcular las matrices del problema
   s(:,:) = 0._pr; v01(:,:) = 0._pr; v02(:,:) = 0._pr; ke(:,:) = 0._pr;
-  call calculo_matrices(kord, l_interval, n_cuad, nk, nb, me, az, bz, t, k, x, w, s, z_mat, v01, v02, ke);
+  call calculo_matrices(kord, l_interval, n_cuad, nk, nb, me, az, bz, t, k, x, w, s, v01, v02, ke);
 
   delta_b = (bcampo_f-bcampo_i)/real(num_puntos_b, pr);
 
@@ -166,22 +176,23 @@ program main
     l_campo = sqrt(2.0_pr*alpha/bcampo)/a0;
     omega = 0.5_pr*bcampo/(me*c_light*ua_to_T);  !! Frecuencia de oscilacion debida al campo
 
-    vr = (1._pr - exp(-(r0/l_campo)**2));
-    vrmax = (1._pr - exp(-(rmax/l_campo)**2));
+    vr = (1._pr - exp(-(r0/l_campo)**2))
+    vrmax = (1._pr - exp(-(rmax/l_campo)**2))
 
-    call hamiltoniano(nb, vrmax*v1, vr*v2, s, v01, v02, ke, h, ms);
+    call interaccion(kord, l_interval, n_cuad, nk, nb, l_campo, k, t, x, w, V_int)
+
+    call hamiltoniano(nb, vrmax*v1, vr*v2, eta, s, v01, v02, ke, v_int, h, ms, mv);
 
     auval = 0._pr
-
     call eigenvalues(ndimh, nev, h, ms, auval, auvec)
 
-    auval = eV*(auval + omega); !0.5_pr*slope_ll*bcampo;
+    auval = eV*auval + slope_ll*bcampo;
 
-    z_exp = matmul(transpose(auvec), matmul(z_mat, auvec))
+    exp_int = matmul(transpose(auvec), matmul(mv, auvec))
 
     write(10,6) bcampo, (auval(i), i = 1, nev)
-    write(11,6) bcampo, (a0*z_exp(i,i), i = 1, nev)
-   call flush();
+    write(11,6) bcampo, (exp_int(i,i), i = 1, nev)
+    call flush();
   end do
 
   deallocate(k, t)
@@ -189,6 +200,9 @@ program main
   deallocate(s, v01, v02, ke)
   deallocate(h, ms)
   deallocate(auval)
+
+  close(10)
+  close(11)
 
 6 format(e22.14,1x,1000(1x,e22.14))
 ! 7 format(3000(1x,e22.14))

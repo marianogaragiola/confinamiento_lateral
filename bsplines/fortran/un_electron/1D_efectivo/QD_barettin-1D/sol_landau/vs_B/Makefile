@@ -11,7 +11,7 @@ MOD4	= mod_eig
 CXX		= gfortran
 
 # FLAGS
-FLAGS			= -cpp -O0 -Wall -Wextra -fcheck=all
+FLAGS			= -cpp -O3 -Wall -Wextra -fcheck=all
 LDFLAGS		= -llapack
 
 # VALUES
@@ -23,16 +23,16 @@ KORD_						= 7
 L_INTERVAL_			= 100
 N_CUAD_					= 100
 NEV_						= 50
-ME_							= 0.041d0
-AZ_							= 7.0d0
-BZ_							= 2.5d0
-R0_							= 7.0d0
-RMAX_						= 7.0d0
-V1_							= 0.37d0
-V2_							= 0.108844d0
-BCAMPO_I_				= 1.d0
-BCAMPO_F_				= 50.d0
-NUM_PUNTOS_B_		= 60
+ME_							= 0.063d0
+AZ_							= 3.0d0
+BZ_							= 2.0d0
+R0_							= 4.0d0
+RMAX_						= 3.7d0
+V1_							= 0.161d0
+V2_							= 0.246d0
+BCAMPO_I_				= 0.001d0
+BCAMPO_F_				= 100.d0
+NUM_PUNTOS_B_		= 100
 
 # PARAMETER
 PARAMETER	= -DZMIN_=$(ZMIN_) -DZMAX_=$(ZMAX_) -DTIPO_=$(TIPO_) -DBETA_=$(BETA_) \

@@ -1,5 +1,5 @@
 # Codigo en python que calcula los autovalores de una
-# particula en un pozo de simetrica esferica
+# particula en un pozo de potencial
 # al cual se le aplica un campo magnetico.
 # Se calcula los elementos de matriz del hamiltoniano
 # en coordenadas cilindricas.
@@ -12,9 +12,9 @@
 #
 # El potencial de confinamiento para la particula es
 #
-#           v1 if(r<r0 and az/2<|z|<(az+bz)/2)
-# V(r,z) = -v2 if(r>r0 and |z|<az/2)
-#           0
+#           v1 if(az/2<|z|<(az+bz)/2)
+# V(r,z) = -v2 if(r<r0 and |z|<az/2)
+#           0  en otro caso
 #
 # La matriz del hamiltoniano la calculo usando como base
 # del espacio los B-splines. El problema de autovalores es un
@@ -23,7 +23,9 @@
 #     H*c = E*S*c
 #
 # Guardo, los autovalores del hamiltoniano en funcion del
-# campo magnetico aplicado.
+# campo magnetico aplicado y se calculan la entropia de von
+# neumann y purity separando las coordenadas para estudiar que
+# tan parecidos a un estado producto es la funcion de onda.
 #######################################################################
 #######################################################################
 import numpy as np
